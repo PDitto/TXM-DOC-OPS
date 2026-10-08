@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TXM Fleet &amp; Unit Status Dashboard</title>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --critical:       #d03b3b;
+    --good-wash:      rgba(12,163,12,0.10);
+    --warning-wash:   rgba(250,178,25,0.16);
+    --critical-wash:  rgba(208,59,59,0.10);
+    --accent:         #2a78d6;
+    --accent-wash:    rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --good:           #0ca30c;
+      --warning:        #fab219;
+      --critical:       #e66767;
+      --good-wash:      rgba(12,163,12,0.16);
+      --warning-wash:   rgba(250,178,25,0.14);
+      --critical-wash:  rgba(230,103,103,0.14);
+      --accent:         #3987e5;
+      --accent-wash:    rgba(57,135,229,0.16);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+  header.top { margin-bottom: 22px; }
+  header.top h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  header.top p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+  .card h2 .sub { font-weight: 400; color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+
+  /* upload zones */
+  .uploads { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 760px) { .uploads { grid-template-columns: 1fr; } }
+  .dropzone {
+    border: 1.5px dashed var(--baseline);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--surface-1);
+    transition: border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-wash); }
+  .dropzone input { display: none; }
+  .dropzone .label { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .dropzone .hint { font-size: 12px; color: var(--text-muted); }
+  .dropzone .status-line { font-size: 12px; margin-top: 8px; color: var(--text-secondary); }
+  .dropzone .status-line.ok { color: var(--good); font-weight: 600; }
+
+  /* KPI tiles */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .tile { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .tile .value { font-size: 26px; font-weight: 600; line-height: 1; }
+  .tile.good .value { color: var(--good); }
+  .tile.warning .value { color: #9c6500; }
+  .tile.critical .value { color: var(--critical); }
+
+  /* stacked bar chart */
+  .barchart { display: flex; flex-direction: column; gap: 10px; }
+  .barrow { display: grid; grid-template-columns: 150px 1fr 46px; align-items: center; gap: 10px; }
+  .barrow .rowlabel { font-size: 13px; color: var(--text-secondary); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barrow .track { position: relative; height: 22px; background: var(--gridline); border-radius: 4px; display: flex; overflow: hidden; }
+  .barrow .seg { height: 100%; position: relative; cursor: default; }
+  .barrow .seg:not(:last-child) { border-right: 2px solid var(--surface-1); }
+  .barrow .total { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 18px; margin-top: 4px; font-size: 12px; color: var(--text-secondary); }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 12px; padding: 6px 9px; border-radius: 6px;
+    max-width: 260px; opacity: 0; transition: opacity .08s;
+  }
+  .tooltip.show { opacity: 1; }
+
+  /* alerts */
+  .alert-item { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--gridline); font-size: 13px; }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-item .icon { font-size: 13px; line-height: 1.4; }
+  .alert-item .icon.critical { color: var(--critical); }
+  .alert-item .icon.warning { color: #9c6500; }
+  .alert-item .title { font-weight: 600; }
+  .alert-item .desc { color: var(--text-secondary); font-size: 12px; margin-top: 1px; }
+  .alert-item .badge { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .empty-note { color: var(--text-muted); font-size: 13px; padding: 6px 0; }
+
+  /* filters + table */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .filters select, .filters input[type="search"] {
+    font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+  }
+  .filters input[type="search"] { flex: 1; min-width: 180px; }
+  .table-scroll { overflow-x: auto; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.data th, table.data td { text-align: left; padding: 7px 10px; white-space: nowrap; border-bottom: 1px solid var(--gridline); }
+  table.data th { color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; position: sticky; top: 0; background: var(--surface-1); }
+  table.data td.num { font-variant-numeric: tabular-nums; }
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+  .status-badge .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .status-badge.good { color: #006300; } .status-badge.good .dot { background: var(--good); }
+  .status-badge.warning { color: #9c6500; } .status-badge.warning .dot { background: var(--warning); }
+  .status-badge.critical { color: var(--critical); } .status-badge.critical .dot { background: var(--critical); }
+  .status-badge.unknown { color: var(--text-muted); } .status-badge.unknown .dot { background: var(--baseline); }
+  .row-count { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .placeholder { color: var(--text-muted); font-size: 13px; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>TXM Fleet &amp; Unit Status Dashboard</h1>
+    <p>Upload the current copies of both workbooks below, or let this page load its last automatic refresh from Drive. Everything renders in your browser — nothing is uploaded anywhere.</p>
+    <p id="refresh-note" style="display:none; margin-top:6px; font-weight:600;"></p>
+  </header>
+
+  <div class="uploads">
+    <label class="dropzone" id="dz-fleet">
+      <input type="file" id="file-fleet" accept=".xlsx">
+      <div class="label">Fleet Management workbook</div>
+      <div class="hint">Drop or click to choose "TXM Headquarters Fleet Management.xlsx"</div>
+      <div class="status-line" id="status-fleet">No file loaded yet</div>
+    </label>
+    <label class="dropzone" id="dz-units">
+      <input type="file" id="file-units" accept=".xlsx">
+      <div class="label">Unit Listing by Area workbook</div>
+      <div class="hint">Drop or click to choose "Unit Listing by Area.xlsx"</div>
+      <div class="status-line" id="status-units">No file loaded yet</div>
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Fleet vehicles <span class="sub">by category</span></h2>
+    <div id="fleet-kpis" class="kpi-row"></div>
+    <div id="fleet-chart" style="margin-top:18px;"></div>
+    <div id="fleet-empty" class="placeholder">Upload the Fleet Management workbook to see this section.</div>
+  </div>
+
+  <div class="card">
+    <h2>DR units <span class="sub">by area</span></h2>
+    <div id="units-kpis" class="kpi-row"></div>
+    <div id="units-chart" style="margin-top:18px;"></div>
+    <div id="units-empty" class="placeholder">Upload the Unit Listing workbook to see this section.</div>
+  </div>
+
+  <div class="card">
+    <h2>Needs attention <span class="sub">Needs Attention / Out of Service / Retired, plus registrations due within 30 days</span></h2>
+    <div id="alerts"></div>
+  </div>
+
+  <div class="card">
+    <h2>All records</h2>
+    <div class="filters">
+      <select id="f-source">
+        <option value="all">All workbooks</option>
+        <option value="fleet">Fleet vehicles</option>
+        <option value="units">DR units</option>
+      </select>
+      <select id="f-category"><option value="all">All categories</option></select>
+      <select id="f-status">
+        <option value="all">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Needs Attention">Needs Attention</option>
+        <option value="Out of Service / Retired">Out of Service / Retired</option>
+        <option value="">(blank)</option>
+      </select>
+      <input type="search" id="f-search" placeholder="Search unit #, make, model, org, contact…">
+    </div>
+    <div class="table-scroll">
+      <table class="data" id="data-table">
+        <thead><tr id="table-head"></tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="row-count" id="row-count"></div>
+  </div>
+
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Minimal, dependency-free .xlsx reader. No CDN, no external library: this
+// artifact must stand alone. Uses the browser's native Compression Streams
+// API (DecompressionStream('deflate-raw'), supported in all current evergreen
+// browsers) to inflate the ZIP entries, and DOMParser for the XML parts.
+// Only reads what this dashboard needs: sheet names, shared strings, and
+// cell values (numbers / strings / booleans) row by row.
+// ---------------------------------------------------------------------------
+const XLSXLite = (function() {
+  function u16(view, o) { return view.getUint16(o, true); }
+  function u32(view, o) { return view.getUint32(o, true); }
+
+  function findEOCD(buf) {
+    const view = new DataView(buf);
+    const maxScan = Math.min(buf.byteLength, 65557);
+    const lo = Math.max(0, buf.byteLength - maxScan);
+    for (let i = buf.byteLength - 22; i >= lo; i--) {
+      if (u32(view, i) === 0x06054b50) return i;
+    }
+    throw new Error('Not a valid .xlsx file (zip end-of-central-directory not found).');
+  }
+
+  function parseCentralDirectory(buf) {
+    const view = new DataView(buf);
+    const eocd = findEOCD(buf);
+    const cdOffset = u32(view, eocd + 16);
+    const cdEntries = u16(view, eocd + 10);
+    const entries = [];
+    let offset = cdOffset;
+    for (let i = 0; i < cdEntries; i++) {
+      if (u32(view, offset) !== 0x02014b50) throw new Error('Malformed zip central directory.');
+      const compMethod = u16(view, offset + 10);
+      const compSize = u32(view, offset + 20);
+      const nameLen = u16(view, offset + 28);
+      const extraLen = u16(view, offset + 30);
+      const commentLen = u16(view, offset + 32);
+      const localHeaderOffset = u32(view, offset + 42);
+      const name = new TextDecoder('utf-8').decode(new Uint8Array(buf, offset + 46, nameLen));
+      entries.push({ name, compMethod, compSize, localHeaderOffset });
+      offset += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries;
+  }
+
+  async function extractEntry(buf, entry) {
+    const view = new DataView(buf);
+    const lh = entry.localHeaderOffset;
+    if (u32(view, lh) !== 0x04034b50) throw new Error('Malformed zip local header for ' + entry.name);
+    const nameLen = u16(view, lh + 26);
+    const extraLen = u16(view, lh + 28);
+    const dataStart = lh + 30 + nameLen + extraLen;
+    const compressed = buf.slice(dataStart, dataStart + entry.compSize);
+    if (entry.compMethod === 0) return compressed;
+    if (entry.compMethod === 8) {
+      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return await new Response(stream).arrayBuffer();
+    }
+    throw new Error('Unsupported zip compression method for ' + entry.name);
+  }
+
+  async function readXmlEntry(buf, entries, name) {
+    const entry = entries.find(e => e.name === name);
+    if (!entry) return null;
+    const data = await extractEntry(buf, entry);
+    const text = new TextDecoder('utf-8').decode(data);
+    return new DOMParser().parseFromString(text, 'application/xml');
+  }
+
+  function colLetterToIndex(letters) {
+    let n = 0;
+    for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  function excelSerialToLocalDate(serial) {
+    const utcMs = Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000;
+    const d = new Date(utcMs);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+
+  const DATE_HEADERS = new Set(['Registration Exp. Date', 'MOU Date', 'Updated', 'Decals Ordered']);
+
+  function parseSharedStrings(doc) {
+    if (!doc) return [];
+    const sis = doc.getElementsByTagName('si');
+    const out = [];
+    for (let i = 0; i < sis.length; i++) {
+      const ts = sis[i].getElementsByTagName('t');
+      let text = '';
+      for (let j = 0; j < ts.length; j++) text += ts[j].textContent;
+      out.push(text);
+    }
+    return out;
+  }
+
+  function parseSheet(doc, sharedStrings) {
+    const rowsEls = doc.getElementsByTagName('row');
+    const rows = [];
+    for (let i = 0; i < rowsEls.length; i++) {
+      const rowEl = rowsEls[i];
+      const rIdx = parseInt(rowEl.getAttribute('r'), 10) - 1;
+      const cells = rowEl.getElementsByTagName('c');
+      const rowArr = [];
+      for (let j = 0; j < cells.length; j++) {
+        const c = cells[j];
+        const ref = c.getAttribute('r');
+        const m = ref && ref.match(/^[A-Z]+/);
+        if (!m) continue;
+        const colIdx = colLetterToIndex(m[0]);
+        const type = c.getAttribute('t');
+        const vEl = c.getElementsByTagName('v')[0];
+        let value = null;
+        if (type === 's') {
+          const idx = vEl ? parseInt(vEl.textContent, 10) : -1;
+          value = sharedStrings[idx] !== undefined ? sharedStrings[idx] : '';
+        } else if (type === 'inlineStr') {
+          const isEl = c.getElementsByTagName('is')[0];
+          value = isEl ? isEl.textContent : '';
+        } else if (type === 'str' || type === 'e') {
+          value = vEl ? vEl.textContent : '';
+        } else if (type === 'b') {
+          value = vEl ? vEl.textContent === '1' : false;
+        } else {
+          value = vEl ? parseFloat(vEl.textContent) : null;
+        }
+        rowArr[colIdx] = value;
+      }
+      rows[rIdx] = rowArr;
+    }
+    return rows;
+  }
+
+  async function readWorkbook(arrayBuffer) {
+    const entries = parseCentralDirectory(arrayBuffer);
+    const wbDoc = await readXmlEntry(arrayBuffer, entries, 'xl/workbook.xml');
+    if (!wbDoc) throw new Error('xl/workbook.xml not found — is this a valid .xlsx file?');
+    const relsDoc = await readXmlEntry(arrayBuffer, entries, 'xl/_rels/workbook.xml.rels');
+    const sstDoc = await readXmlEntry(arrayBuffer, entries, 'xl/sharedStrings.xml');
+    const sharedStrings = parseSharedStrings(sstDoc);
+
+    const relMap = {};
+    if (relsDoc) {
+      const rels = relsDoc.getElementsByTagName('Relationship');
+      for (let i = 0; i < rels.length; i++) relMap[rels[i].getAttribute('Id')] = rels[i].getAttribute('Target');
+    }
+
+    const sheetEls = wbDoc.getElementsByTagName('sheet');
+    const sheetNames = [];
+    const sheets = {};
+    for (let i = 0; i < sheetEls.length; i++) {
+      const name = sheetEls[i].getAttribute('name');
+      const rId = sheetEls[i].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')
+        || sheetEls[i].getAttribute('r:id');
+      let target = relMap[rId];
+      if (!target) continue;
+      target = target.replace(/^\//, '');
+      if (!target.startsWith('xl/')) target = 'xl/' + target;
+      const sheetDoc = await readXmlEntry(arrayBuffer, entries, target);
+      if (!sheetDoc) continue;
+      sheetNames.push(name);
+      sheets[name] = parseSheet(sheetDoc, sharedStrings);
+    }
+    return { SheetNames: sheetNames, Sheets: sheets };
+  }
+
+  function sheetToJson(rawRows, opts) {
+    opts = opts || {};
+    const defval = opts.defval !== undefined ? opts.defval : undefined;
+    if (!rawRows || rawRows.length === 0) return [];
+    const headerRow = rawRows[0] || [];
+    const headers = headerRow.map(h => (h === null || h === undefined) ? null : String(h));
+    const out = [];
+    for (let r = 1; r < rawRows.length; r++) {
+      const rowArr = rawRows[r];
+      if (!rowArr) continue;
+      const obj = {};
+      let hasAny = false;
+      for (let c = 0; c < headers.length; c++) {
+        const h = headers[c];
+        if (!h) continue;
+        let val = rowArr[c];
+        if (val === undefined || val === null) {
+          obj[h] = defval;
+        } else {
+          if (DATE_HEADERS.has(h) && typeof val === 'number') val = excelSerialToLocalDate(val);
+          obj[h] = val;
+          hasAny = true;
+        }
+      }
+      if (hasAny) out.push(obj);
+    }
+    return out;
+  }
+
+  return { readWorkbook, sheetToJson };
+})();
+
+const STATUS_COLOR = {
+  "Active": "good",
+  "Needs Attention": "warning",
+  "Out of Service / Retired": "critical"
+};
+const STATUS_HEX = { good: "#0ca30c", warning: "#fab219", critical: "#d03b3b" };
+const STATUS_ORDER = ["Active", "Needs Attention", "Out of Service / Retired"];
+
+let fleetRows = [];   // {category, status, unit, year, make, model, vin, license, regExp, parkingLoc, comments}
+let unitRows = [];    // {region, status, unitId, equipCategory, org, location, county, contact, mouDate}
+let allRecords = [];  // unified rows for the table: {source, category, status, cols:{...}}
+
+// ---------------------------------------------------------------------------
+// Embedded snapshot support. The Drive-refresh pipeline regenerates this file
+// with EMBEDDED_DATA filled in (a JSON snapshot of both workbooks as of the
+// last refresh), so the dashboard renders immediately with no upload needed.
+// Dropping a file in still works and simply overrides the snapshot for that
+// viewing session — it never writes back to Drive.
+// ---------------------------------------------------------------------------
+const EMBEDDED_DATA = {"generatedAt": "July 13, 2026", "fleet": [{"category": "Admin", "status": "Active", "unit": "A104", "year": 2019, "make": "Chevrolet", "model": "Sildervado 1500 LT", "vin": "1GCUYDED9KZ139796", "type": "Vehicle", "license": "51D890", "regExp": "2027-02-01", "parkingLoc": "Mobile", "comments": "Truck - Rafa"}, {"category": "Admin", "status": "Active", "unit": "A107", "year": 2024, "make": "GMC", "model": "Acadia", "vin": "1GKENLKS8RJ210865", "type": "Vehicle", "license": "VPP9771", "regExp": "2026-09-01", "parkingLoc": null, "comments": "SUV - Jacob Moneybrake"}, {"category": "Admin", "status": "Active", "unit": "A106", "year": 2024, "make": "Chevrolet", "model": "Sildervado 1500", "vin": "2GCUDGED2R1128753", "type": "Vehicle", "license": "TML8289", "regExp": "2026-09-01", "parkingLoc": "Mobile", "comments": "Truck - Doug Hall"}, {"category": "Admin", "status": "Active", "unit": "A108", "year": 2025, "make": "Chevrolet", "model": "Tahoe", "vin": "1GNS6TRL2SR170288", "type": "Vehicle", "license": "WGM2904", "regExp": "2027-01-01", "parkingLoc": "Mobile", "comments": "SUV - John Travis"}, {"category": "Admin", "status": "Active", "unit": "A109", "year": 2025, "make": "Chevrolet", "model": "Tahoe", "vin": "1GNS5SRD2SR298407", "type": "Vehicle", "license": "WVS6563", "regExp": "2027-07-01", "parkingLoc": "Mobile", "comments": "SUV - Mickey Lenamon"}, {"category": "Admin", "status": "Active", "unit": "A110", "year": 2026, "make": "Chevrolet", "model": "Silverado", "vin": "2GCUKGED4T1120893", "type": "Vehicle", "license": "WYS9711", "regExp": "2027-10-01", "parkingLoc": "Mobile", "comments": "Truck - Ryan Lenamon"}, {"category": "DR", "status": "Active", "unit": "B220", "year": 1993, "make": "Lufkin", "model": "TFV-TP ST", "vin": "1L01A532XP1099508", "type": "Trailer", "license": "Maine 23 97378", "regExp": null, "parkingLoc": null, "comments": "53' Supply Semi Trailer (perm assignment Furniture Builders, Latham Springs)"}, {"category": "DR", "status": "Active", "unit": "D602", "year": 1994, "make": "Wells Cargo", "model": "Trailer", "vin": "1WC200G28R2024609", "type": "Trailer", "license": "52D 182", "regExp": "2027-03-01", "parkingLoc": "Outside LaNoue", "comments": "Work horse / ladder rack trailer, swing back door"}, {"category": "DR", "status": "Active", "unit": "D603", "year": 1997, "make": "CMTR", "model": "Trailer", "vin": "49TCB1012V1030676", "type": "Trailer", "license": "52D 179", "regExp": "2027-03-01", "parkingLoc": "Outside LaNoue", "comments": "Luggage Trailer"}, {"category": "DR", "status": "Active", "unit": "D605", "year": 1998, "make": "Hallmark", "model": "Trailer", "vin": "4XSG53231WG008801", "type": "Trailer", "license": "52D 194", "regExp": null, "parkingLoc": "Inside LaNoue", "comments": "Mudout Trailer (Day Volunteer)"}, {"category": "DR", "status": "Active", "unit": "D606", "year": 2001, "make": "Wells Cargo", "model": "WC-5 33158", "vin": "1WC200L2812043543", "type": "Trailer", "license": "52D 191", "regExp": "2027-02-01", "parkingLoc": "Inside LaNoue", "comments": "Child Care"}, {"category": "DR", "status": "Active", "unit": "D607 K2S", "year": 2001, "make": "Wells Cargo", "model": "Trailer", "vin": "1WC200J2512043745", "type": "Trailer", "license": "52D 158", "regExp": "2027-01-01", "parkingLoc": "Inside LaNoue", "comments": "Supply Trailer / Feeding Support"}, {"category": "DR", "status": "Active", "unit": "D608", "year": 2003, "make": "International", "model": "Vehicle", "vin": "3H2CNASR23N055505", "type": "Vehicle", "license": "52D 198", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "Eagle Tractor Truck"}, {"category": "DR", "status": "Active", "unit": "D609", "year": 2006, "make": "Genera", "model": "Generator", "vin": "1W9SS152761294599", "type": "Trailer", "license": "52D 187", "regExp": null, "parkingLoc": "Insdie LaNoue", "comments": "200 kW Green Generator Trailer"}, {"category": "DR", "status": "Active", "unit": "D610", "year": 2006, "make": "Nash", "model": "Travel Trailer", "vin": "4N11M222860203232", "type": "Trailer", "license": "52D 177", "regExp": "2027-03-01", "parkingLoc": "Outside Dixon Bldg", "comments": "Rand Has"}, {"category": "DR", "status": "Active", "unit": "D611", "year": 2007, "make": "Great Dane", "model": "Trailer", "vin": "1GRAA06287B704977", "type": "Trailer", "license": "52D 189", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "53' Semi trailer - Feeding Unit"}, {"category": "DR", "status": "Active", "unit": "D612", "year": 2007, "make": "Great Dane", "model": "Trailer", "vin": "1GRAA06287B705921", "type": "Trailer", "license": "52D 181", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "53' Supply Semi Trailer"}, {"category": "DR", "status": "Active", "unit": "D614", "year": 2007, "make": "Wells Cargo", "model": "WC-98 41904", "vin": "1WC200R3772058351", "type": "Trailer", "license": "9108433 E", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "Empty/Haul/Event Trailer"}, {"category": "DR", "status": "Active", "unit": "D615", "year": 2012, "make": "Ford", "model": "E-350", "vin": "1FTSE3EL4CDB37275", "type": "Vehicle", "license": "BZ4 2156", "regExp": "2026-09-01", "parkingLoc": "Inside Dixon", "comments": "WMU Van"}, {"category": "DR", "status": "Active", "unit": "D616", "year": 2013, "make": "BigTex", "model": "Tilt Trailer", "vin": "16VCX2023D2353711", "type": "Trailer", "license": "52D 183", "regExp": "2027-03-01", "parkingLoc": "Outside Dixon", "comments": "Lowboy for forklift transport, tilt trailer"}, {"category": "DR", "status": "Active", "unit": "D617", "year": 2014, "make": "Ford", "model": "F-450", "vin": "1FDOW4HT8EEA87513", "type": "Vehicle", "license": "52D120", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "Flatbed"}, {"category": "DR", "status": "Active", "unit": "D619", "year": 2015, "make": "Kawasaki", "model": "Mule", "vin": "JKBAFSC13FB500918", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": "Inside LaNoue", "comments": "4 Person - Pro FXT LE"}, {"category": "DR", "status": "Active", "unit": "D620", "year": 2017, "make": "Ford", "model": "F-250", "vin": "1FT7W2BT6HEB90496", "type": "Vehicle", "license": "51D882", "regExp": "2026-12-01", "parkingLoc": "Inside LaNoue", "comments": "Pickup 4x4"}, {"category": "DR", "status": "Active", "unit": "D622", "year": 2017, "make": "Ford", "model": "F-350", "vin": "1FT7W3BT8HEE28354", "type": "Vehicle", "license": "51D886", "regExp": "2026-12-01", "parkingLoc": "Inside LaNoue", "comments": "Long Box, Single Wheel, base model"}, {"category": "DR", "status": "Active", "unit": "D623 RB 1", "year": 2017, "make": "Wells Cargo", "model": "Trailer", "vin": "575200G29HT349759", "type": "Trailer", "license": "52D 150", "regExp": "2030-09-01", "parkingLoc": "Inside LaNoue", "comments": "Rebuild 2  - RB1"}, {"category": "DR", "status": "Active", "unit": "D624 RB 2", "year": 2017, "make": "Wells Cargo", "model": "Trailer", "vin": "575200G20HT356023", "type": "Trailer", "license": "52D 151", "regExp": "2030-09-01", "parkingLoc": "Inside LaNoue", "comments": "Rebuild 1   - RB2"}, {"category": "DR", "status": "Active", "unit": "D626", "year": 2018, "make": "Big Tex", "model": "Trailer", "vin": "16VFX2026J2007676", "type": "Trailer", "license": "52D 157", "regExp": "2027-01-01", "parkingLoc": "Outside LaNoue", "comments": "Flat Bed, lowboy"}, {"category": "DR", "status": "Active", "unit": "D627", "year": 2018, "make": "BigTex", "model": "Trailer", "vin": "16VFX2025J2008852", "type": "Trailer", "license": "52D 155", "regExp": "2027-01-01", "parkingLoc": "Outside LaNoue", "comments": "Flat Bed, lowboy"}, {"category": "DR", "status": "Active", "unit": "D628", "year": 2018, "make": "Freedom", "model": "Trailer", "vin": "5WKBE2429J1054937", "type": "Trailer", "license": "52D 199", "regExp": "2027-04-01", "parkingLoc": "Inside LaNoue", "comments": "Rapid Response Unit (Feeding)"}, {"category": "DR", "status": "Active", "unit": "D629", "year": 2018, "make": "Trip", "model": "Trailer", "vin": "1XNCSD16XJ1085823", "type": "Trailer", "license": "52D 153", "regExp": "2026-09-01", "parkingLoc": "Inside LaNoue", "comments": "Cooler/Refrigerated Trailer"}, {"category": "DR", "status": "Active", "unit": "D631 K1K", "year": 2019, "make": "Cargo Craft", "model": "GN-85362", "vin": "4D6EG3623KC055077", "type": "Trailer", "license": "52D 166", "regExp": "2027-05-01", "parkingLoc": "Inside LaNoue", "comments": "State Kitchen #1"}, {"category": "DR", "status": "Active", "unit": "D632 K1S", "year": 2019, "make": "Cargo Craft", "model": "GN-85362", "vin": "4D6EG3628KC055138", "type": "Trailer", "license": "52D 165", "regExp": "2027-05-01", "parkingLoc": "Inside LaNoue", "comments": "State Kitchen Support Trailer #1"}, {"category": "DR", "status": "Active", "unit": "D633 K2K", "year": 2019, "make": "Cargo Craft", "model": "GN-85362", "vin": "4D6EG3620KC054954", "type": "Trailer", "license": "52D 167", "regExp": "2027-05-01", "parkingLoc": "Inside LaNoue", "comments": "State Kitchen #2"}, {"category": "DR", "status": "Active", "unit": "D634", "year": 2019, "make": "Ford", "model": "F-350", "vin": "1FT8W3DT4KEC96671", "type": "Vehicle", "license": "51D885", "regExp": "2026-12-01", "parkingLoc": "Inside LaNoue", "comments": "Dually"}, {"category": "DR", "status": "Active", "unit": "D636", "year": 2019, "make": "Ford", "model": "F-350", "vin": "1FT8W3BT6KED09181", "type": "Vehicle", "license": "52D116", "regExp": "2027-04-01", "parkingLoc": "Inside LaNoue", "comments": "Single wheel, Long Box, XLT, 2nd 350 bought in 2019"}, {"category": "DR", "status": "Active", "unit": "D637", "year": 2019, "make": "Impression", "model": "MPF34MID", "vin": "5ZT3MPZBXKG600662", "type": "Trailer", "license": "52D162", "regExp": "2027-07-01", "parkingLoc": "Inside LaNoue", "comments": "DR RV; Serial Number: MPG600662"}, {"category": "DR", "status": "Active", "unit": "D638", "year": 2019, "make": "Orchard Hill", "model": "Box (Shower)", "vin": "1Z9BE2422KM353316", "type": "Trailer", "license": "52D 159", "regExp": "2027-03-01", "parkingLoc": "Inside LaNoue", "comments": "Shower Laundry Trailer 005 (4S,2W,3D)"}, {"category": "DR", "status": "Active", "unit": "D639", "year": 2019, "make": "Texoma", "model": "16' Car Hauler", "vin": "50FT1C623KA730929", "type": "Trailer", "license": "51D 876", "regExp": "2027-03-01", "parkingLoc": null, "comments": "50 kW  Generator and Trailer (Green)"}, {"category": "DR", "status": "Active", "unit": "D644", "year": 2020, "make": "Chevrolet", "model": "2500 HD", "vin": "1GC4YNEYOLF218849", "type": "Vehicle", "license": "NCK 4032", "regExp": "2027-04-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D650", "year": 2020, "make": "Performax", "model": "Command Trailer", "vin": "1P9GC3821LW280757", "type": "Trailer", "license": "51D 861", "regExp": "2026-11-01", "parkingLoc": null, "comments": "Incident Command Trailer"}, {"category": "DR", "status": "Active", "unit": "D651", "year": 2000, "make": "Wells Cargo", "model": "Trailer", "vin": "1WC200D11Y1092458", "type": "Trailer", "license": "910 840 T", "regExp": "2030-11-01", "parkingLoc": "Outside LaNoue", "comments": "Outdoor Ministry trailer (small)"}, {"category": "DR", "status": "Active", "unit": "D652", "year": 2020, "make": "Orchard Hill", "model": "Shower/Laundry", "vin": "1Z9BE2423LM353373", "type": "Trailer", "license": "52D 168", "regExp": "2031-05-01", "parkingLoc": null, "comments": "Shower Laundry Trailer 006 (4S,2W,3D)"}, {"category": "DR", "status": "Active", "unit": "D653", "year": 2021, "make": "Pace American", "model": "Feeding Trailer", "vin": "53BPTEB23MR003530", "type": "Trailer", "license": "52D 173", "regExp": "2027-01-01", "parkingLoc": null, "comments": "Church Kitchen Support Trailer"}, {"category": "DR", "status": "Active", "unit": "D654", "year": null, "make": "US Traffic Corp", "model": "Traffic Display Solutions", "vin": "non found yet", "type": "Trailer", "license": "none", "regExp": null, "parkingLoc": null, "comments": "Solar Traffic Display Trailer"}, {"category": "DR", "status": "Active", "unit": "D655", "year": 2011, "make": "Expedition Cargo Craft", "model": "Dual Axle Trailer", "vin": "4D6EB1621CC028822", "type": "Trailer", "license": "52D 175", "regExp": "2027-04-01", "parkingLoc": null, "comments": "Electrical Support Trailer"}, {"category": "DR", "status": "Active", "unit": "D656", "year": 1993, "make": "HiPoint", "model": "Dual Axle Trailer", "vin": "1M9PT1624P5090123", "type": "Trailer", "license": "52D 172", "regExp": "2027-03-01", "parkingLoc": null, "comments": "Electrionics Support Trailer #1"}, {"category": "DR", "status": "Active", "unit": "D657", "year": 2022, "make": "Big Tex", "model": "Dual Axle Flatbed", "vin": "16V1C2520N2108085", "type": "Trailer", "license": "52D 857", "regExp": "2026-10-01", "parkingLoc": null, "comments": "230 KW Generator"}, {"category": "DR", "status": "Active", "unit": "D658", "year": 2006, "make": "Outpost", "model": "RV", "vin": "1A9BA02J06A014533", "type": "Trailer", "license": "51D856", "regExp": "2031-05-01", "parkingLoc": "Inside Dixpn", "comments": null}, {"category": "DR", "status": "Active", "unit": "D-659", "year": 2020, "make": "Ford", "model": "Food Truck", "vin": "1F65F5KN5L0A07916", "type": "Truck", "license": "51D889", "regExp": "2027-02-01", "parkingLoc": null, "comments": "Food Truck"}, {"category": "DR", "status": "Active", "unit": "D-660", "year": 1997, "make": "Progessive", "model": "Laundry", "vin": "1P9EC3020VP297131", "type": "Trailer", "license": "52D-174", "regExp": "2027-05-01", "parkingLoc": null, "comments": "Laundry Trailer  040 (6 washers & 6 Dryers)"}, {"category": "DR", "status": "Active", "unit": "D-662", "year": 2022, "make": "Chevrolet", "model": 4500, "vin": "1HTKJPVK9NH271109", "type": "Truck", "license": "51D893", "regExp": "2027-03-01", "parkingLoc": null, "comments": "Flatbed"}, {"category": "DR", "status": "Active", "unit": "D-663", "year": 2023, "make": "TX Pride Trailers", "model": "GT717816KGN", "vin": "7HCGL2525PB046515", "type": "Trailer", "license": "51D864", "regExp": "2026-11-01", "parkingLoc": null, "comments": "Tilt Trailer"}, {"category": "DR", "status": "Active", "unit": "D-667", "year": 2023, "make": "LDJ Manf. Inc.", "model": "MTT690-G3", "vin": "56ZL1UF23PP001490", "type": "Trailer", "license": "51D865", "regExp": "2026-12-01", "parkingLoc": null, "comments": "6 - Cell Diesel Fuel Trailer"}, {"category": "DR", "status": "Active", "unit": "D-669", "year": 2024, "make": "Man Lift", "model": "JGL", "vin": "5DYACJ1J1RP017347", "type": "Equipment", "license": "51D872", "regExp": "2027-06-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-670", "year": 2012, "make": "Utility", "model": "VS2RA", "vin": "1UYVS2539CU248020", "type": "Trailer", "license": "51D863", "regExp": "2026-08-01", "parkingLoc": null, "comments": "53' Refrigerated Trailer"}, {"category": "DR", "status": "Active", "unit": "D-671", "year": 2024, "make": "Sundowner", "model": "JA1099", "vin": "13SJG3929R1JA1099", "type": "Trailer", "license": "51D877", "regExp": "2026-11-01", "parkingLoc": null, "comments": "Bunkhouse Trailer"}, {"category": "DR", "status": "Active", "unit": "D-672", "year": 2023, "make": "Catapillar", "model": "TH255C RC", "vin": "JK205353", "type": "Equipment", "license": "n/a", "regExp": null, "parkingLoc": null, "comments": "Tele-Handler Forklift"}, {"category": "DR", "status": "Active", "unit": "D-673", "year": 2012, "make": "Comforts of Home Srvs. Inc.", "model": "32' 9st Restroom", "vin": "4C9TW3226CM081300", "type": "Trailer", "license": "51D867", "regExp": "2027-02-01", "parkingLoc": null, "comments": "Shower Trailer 008"}, {"category": "DR", "status": "Active", "unit": "D-674", "year": 2006, "make": "Contract Manufacturer, Inc. LLC (CM Trailers)", "model": "Trailer", "vin": "49TCG242861082552", "type": "Trailer", "license": "51D873", "regExp": "2027-04-01", "parkingLoc": "Dixon", "comments": "Quick Response Cooking Trailer"}, {"category": "DR", "status": "Active", "unit": "D-675", "year": 2012, "make": "Comforts of Home Srvs. Inc.", "model": "32' 9st Restroom", "vin": "4C9TW3228CM081301", "type": "Trailer", "license": "51D866", "regExp": "2027-02-01", "parkingLoc": null, "comments": "Shower Trailer 009"}, {"category": "DR", "status": "Active", "unit": "D-676", "year": 2024, "make": "Chevrolet", "model": "Silverado 2500", "vin": "2GC4YNEY9R1265491", "type": "Vehicle", "license": "52D121", "regExp": "2026-09-01", "parkingLoc": null, "comments": "Truck - Phillip Ditto"}, {"category": "DR", "status": "Active", "unit": "D-677", "year": 2007, "make": "Valu", "model": "UT", "vin": "5NHUVH2297Y004539", "type": "Trailer", "license": "51D868", "regExp": "2031-05-01", "parkingLoc": null, "comments": "Electrionics Support Trailer #2 (former Denton County Unit)"}, {"category": "DR", "status": "Active", "unit": "D-678", "year": null, "make": "ClubCar", "model": "Golf Cart", "vin": "TN2246-348733", "type": "Equipment", "license": null, "regExp": null, "parkingLoc": null, "comments": "Black  high profile (donated by Pilgrim Ranch)"}, {"category": "DR", "status": "Active", "unit": "D-679", "year": 2025, "make": "Chevrolet", "model": "Silverado 3500", "vin": "1GC4KTEY2SF141812", "type": "Truck", "license": "51D884", "regExp": "2026-12-01", "parkingLoc": null, "comments": "One-Ton Dually"}, {"category": "DR", "status": "Active", "unit": "D-680", "year": 2024, "make": "Chevrolet", "model": 5500, "vin": "1HTKJPVK2RH128640", "type": "Truck", "license": "51D883", "regExp": "2026-12-01", "parkingLoc": null, "comments": "Flatbed"}, {"category": "DR", "status": "Active", "unit": "D-682", "year": 1986, "make": "Ingersol Rand", "model": "G120", "vin": "120C4006322", "type": "Trailer", "license": null, "regExp": null, "parkingLoc": null, "comments": "120 kW Generator"}, {"category": "DR", "status": "Active", "unit": "D-683", "year": 2007, "make": "Wells Cargo", "model": "AWG3625T (36')", "vin": "1WC200R2572057738", "type": "Trailer", "license": "51D874", "regExp": "2026-08-01", "parkingLoc": "Dixon", "comments": "Mass Kitchen Supply Trailer (LIndale)"}, {"category": "DR", "status": "Active", "unit": "D-684", "year": 2007, "make": "Wells Cargo", "model": "AWG3225T (32')", "vin": "1WC200R2072059493", "type": "Trailer", "license": "51D875", "regExp": "2026-08-01", "parkingLoc": "Dixon", "comments": "Mass Kitchen Trailer (Lindale)"}, {"category": "DR", "status": "Active", "unit": "D-685", "year": 2005, "make": "Wells Cargo", "model": "Utility Box", "vin": "1W4200G2752053623", "type": "Trailer", "license": "51D871", "regExp": "2027-07-01", "parkingLoc": null, "comments": "Unassigned (received in trade from CTCDR)"}, {"category": "DR", "status": "Active", "unit": "D-687", "year": 2003, "make": "CM", "model": "Trailer", "vin": "49TCG202431062770", "type": "Trailer", "license": "51D878", "regExp": "2027-04-01", "parkingLoc": null, "comments": "Trailer from Shorecrest Baptist Church - Lubbock"}, {"category": "DR", "status": "Active", "unit": "D-688", "year": 2005, "make": "Pace", "model": "Chainsaw Trailer", "vin": "47ZFB122X5X034779", "type": "Trailer", "license": "51D879", "regExp": "2030-11-01", "parkingLoc": null, "comments": "Trailer from Plympouth Park Baptist Church - Irving"}, {"category": "DR", "status": "Active", "unit": "D-689", "year": 2022, "make": "Carg", "model": "Trailer", "vin": "4D6EB1621NC062505", "type": "Trailer", "license": "51D881", "regExp": "2027-05-01", "parkingLoc": null, "comments": "Trailer from Jeffrey Baird"}, {"category": "DR", "status": "Active", "unit": "D-690", "year": 2024, "make": "Hawn", "model": "Shower & Laundry", "vin": "1H9GE3530R1176025", "type": "Trailer", "license": "51D718", "regExp": "2026-12-01", "parkingLoc": null, "comments": "Shower Laundry 007 (4S,4W,5D)"}, {"category": "DR", "status": "Active", "unit": "D-691", "year": 2006, "make": "Pace", "model": null, "vin": "47ZW532206X047139", "type": "Trailer", "license": "52D831", "regExp": "2027-01-01", "parkingLoc": null, "comments": "From Morton Baptist Church"}, {"category": "DR", "status": "Active", "unit": "D-692", "year": 2008, "make": "Park", "model": "Generator", "vin": "13ZHC142681004761", "type": "Trailer", "license": "52D832", "regExp": "2027-01-01", "parkingLoc": null, "comments": "From Morton Baptist Church"}, {"category": "DR", "status": "Active", "unit": "D-693", "year": 1999, "make": "Carg", "model": "Mobil Kitchen", "vin": "4X4TSEH20XN016412", "type": "Trailer", "license": "52D834", "regExp": "2027-01-01", "parkingLoc": null, "comments": "From Morton Baptist Church"}, {"category": "DR", "status": "Active", "unit": "D-694", "year": 2006, "make": "Pace", "model": "Pantry/Supply", "vin": "47ZW5322X6X041316", "type": "Trailer", "license": "52D835", "regExp": "2027-01-01", "parkingLoc": null, "comments": "From Morton Baptist Church"}, {"category": "DR", "status": "Active", "unit": "D-695", "year": 2003, "make": "Road", "model": "Shower Trailer", "vin": "5DT311R2131007607", "type": "Trailer", "license": "53D857", "regExp": "2027-04-01", "parkingLoc": null, "comments": "From Medina River Baptist Assoc."}, {"category": "DR", "status": "Active", "unit": "D-696", "year": 2013, "make": "International", "model": "Van model 430", "vin": "1HTMMAALXDH202441", "type": "Vehicle", "license": "54D045", "regExp": "2026-08-01", "parkingLoc": null, "comments": "Electrical box truck"}, {"category": "DR", "status": "Active", "unit": "D-697", "year": 2011, "make": "VMAP", "model": "Rebuild Trailer", "vin": "53PUB2423BP213789", "type": "Trailer", "license": "51D888", "regExp": "2026-08-01", "parkingLoc": null, "comments": "From St Andrew United Methodist"}, {"category": "DR", "status": "Active", "unit": "D-698", "year": 1992, "make": "HDME", "model": "Shower Trailer", "vin": "NM129519", "type": "Trailer", "license": "51D887", "regExp": "2027-07-01", "parkingLoc": null, "comments": "From El Paso Baptist Assocation"}, {"category": "DR", "status": "Active", "unit": "D-699", "year": 2026, "make": "W-W TRAILER", "model": "CC1", "vin": "11WHC1629TW328545", "type": "Trailer", "license": "51D891", "regExp": "2027-01-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-700", "year": 2026, "make": "Sundowner", "model": "GM", "vin": "13SJG3927T1JA1027", "type": "Trailer", "license": "51D894", "regExp": "2027-01-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-701", "year": 2026, "make": "Chevrolet", "model": "Silverado 3500 HD", "vin": "1GC4KTEY4TF222151", "type": "Vehicle", "license": "52D117", "regExp": "2027-03-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-702", "year": 2026, "make": "Chevrolet", "model": "Silverado 3500 HD", "vin": "1GC4KTEY5TF222028", "type": "Vehicle", "license": "52D118", "regExp": "2027-03-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-703", "year": 2026, "make": "W-W TRAILER", "model": "CC16X8", "vin": "11WHC1620TW328580", "type": "Trailer", "license": "51D896", "regExp": "2027-03-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-704", "year": 2026, "make": "W-W TRAILER", "model": "CC16X8", "vin": "11WHC1628TW328679", "type": "Trailer", "license": "51D895", "regExp": "2027-03-01", "parkingLoc": null, "comments": null}, {"category": "DR", "status": "Active", "unit": "D-705", "year": 2003, "make": "Wells Cargo", "model": null, "vin": "1WF200E1032048701", "type": "Trailer", "license": "51D897", "regExp": "2027-04-01", "parkingLoc": null, "comments": "From Crestview Baptist Church - Georgetown"}, {"category": "DR", "status": "Active", "unit": "D-706", "year": 2002, "make": "Wells Cargo", "model": null, "vin": "1WC200G2822045028", "type": "Trailer", "license": "51D898", "regExp": "2027-04-01", "parkingLoc": null, "comments": "From Tri River Area- Gatesville"}, {"category": "Water", "status": "Active", "unit": "T501", "year": 2015, "make": "BigTex", "model": "Trailer", "vin": "575200F28FT286494", "type": "Trailer", "license": "910 7969E", "regExp": "2030-12-01", "parkingLoc": "Outside LaNoue", "comments": "Drop-down back door"}, {"category": "Water", "status": "Active", "unit": "T502", "year": 2019, "make": "Ford", "model": "F-250", "vin": "1FT7W2BT0KED81340", "type": "Vehicle", "license": "51D892", "regExp": "2027-03-01", "parkingLoc": "Inside Dixon", "comments": "Jacob Moneybrake Vehicle"}, {"category": "Water", "status": "Active", "unit": "T503", "year": 2020, "make": "Lone Star", "model": "Trailer", "vin": "1L9BU1029LL312271", "type": "Trailer", "license": "911 8215", "regExp": "2027-05-01", "parkingLoc": null, "comments": "Drilling Rig"}, {"category": "Water", "status": "Active", "unit": "T504", "year": 2022, "make": "Chevrolet", "model": "2500", "vin": "1GC4YREY1NF352764", "type": "Vehicle", "license": "SCJ 5532", "regExp": "2026-08-01", "parkingLoc": null, "comments": "Rand Truck"}, {"category": "Water", "status": "Active", "unit": "T505", "year": 2015, "make": "SGAC", "model": "Trailer", "vin": "54GVC08D3F7013585", "type": "Trailer", "license": "51D862", "regExp": "2030-09-01", "parkingLoc": null, "comments": "Drop-down back door single axle"}, {"category": "Water", "status": "Active", "unit": "T-506", "year": 2019, "make": "Continental Cargo", "model": 714, "vin": "5NHULE42XKY080099", "type": "Trailer", "license": "778654M", "regExp": "2027-05-01", "parkingLoc": null, "comments": "Drop-down back door"}, {"category": "Water", "status": "Active", "unit": "T-507", "year": 2024, "make": "Wiley", "model": "Water Tank", "vin": "5VUTY2116RP000001", "type": "Trailer", "license": "51D870", "regExp": "2027-05-01", "parkingLoc": null, "comments": "Cone Bottom Trailer"}, {"category": "Builders", "status": "Active", "unit": "B206", "year": 2000, "make": "Wells Cargo", "model": "Trailer", "vin": "1WC200R3042050474", "type": "Trailer", "license": "910 7987", "regExp": "2023-03-01", "parkingLoc": "Latham Springs", "comments": "Furniture Builders Trailer"}, {"category": "Builders", "status": "Active", "unit": "B208", "year": 2004, "make": "Wells Cargo", "model": "WC-5 38540", "vin": "1WC200R3242049780", "type": "Trailer", "license": "52D170", "regExp": "2027-04-01", "parkingLoc": "Outside LaNoue", "comments": "Emergency Response Trailer, 3 Axle"}, {"category": "Builders", "status": "Active", "unit": "B211", "year": 2005, "make": "Wells Cargo", "model": "WC-93 40801", "vin": "1WC200R2552054111", "type": "Trailer", "license": "9108430 E", "regExp": "2027-03-01", "parkingLoc": "Outside LaNoue", "comments": "Church Builders"}, {"category": "Builders", "status": "Active", "unit": "B212", "year": 2006, "make": "Wells Cargo", "model": "WC-93 41067", "vin": "1WC200R2462054831", "type": "Trailer", "license": "912 697 E", "regExp": "2027-04-01", "parkingLoc": "Outside LaNoue", "comments": "Camp Builders, Triple axle"}, {"category": "Builders", "status": "Active", "unit": "B213", "year": 2007, "make": "Wells Cargo", "model": "WC-93 42274", "vin": "1WC200R3972060621", "type": "Trailer", "license": "901 3149 E", "regExp": "2027-04-01", "parkingLoc": "Outside LaNoue", "comments": "Cabinent Builders"}, {"category": "Builders", "status": "Active", "unit": "B214", "year": 2007, "make": "Wells Cargo", "model": "WC-98 41898", "vin": "1WC200R3X72058957", "type": "Trailer", "license": "901 3148 E", "regExp": "2027-04-01", "parkingLoc": "Outside LaNoue", "comments": "Camp Builders Trailer, 3 axle"}, {"category": "Builders", "status": "Active", "unit": "B215", "year": 2013, "make": "Textron EZ-GO", "model": "TXTE-48V", "vin": "2829667", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": "Inside Dixon", "comments": "Black 4-person; traded for Red 6-man golf cart"}, {"category": "Builders", "status": "Active", "unit": "B216", "year": 2013, "make": "Textron EZ-GO", "model": null, "vin": "969852", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": "Inside Dixon", "comments": "Blue w/ utility box; traded for Green ATV"}, {"category": "Builders", "status": "Active", "unit": "B218", "year": 2021, "make": "Chevrolet", "model": "3500 HD", "vin": "1GB4YSEY8MF239520", "type": "Vehicle", "license": "52D122", "regExp": "2027-06-01", "parkingLoc": "Inside Dixon", "comments": "Flatbed to replace Builder's F450"}, {"category": "Builders", "status": "Active", "unit": "B219", "year": 2022, "make": "HAULMARK", "model": "PP670S2-D", "vin": "7KB1E1018NT903090", "type": "Box Trailer", "license": "324 618m", "regExp": "2031-05-01", "parkingLoc": null, "comments": "Small Box Trailer for Hispanic Builders in the Rio Grande Valley"}, {"category": "RAs", "status": "Active", "unit": "R402", "year": 1998, "make": "CIRC / Top Hat", "model": "Trailer", "vin": "1C9CS2421WT459845", "type": "Trailer", "license": "996 413", "regExp": "2027-04-01", "parkingLoc": "Inside Dixon", "comments": "Missions Mania Trailer, Tandem"}, {"category": "RAs", "status": "Active", "unit": "R403", "year": 2003, "make": "Buffalo", "model": "Trailer", "vin": "1B9CC18103J463141", "type": "Trailer", "license": "NONE", "regExp": "2027-05-01", "parkingLoc": "@ Franklin, TX (Contact John Clayton)", "comments": "10 Hauler / Canoe Trailer (Latham Springs)"}, {"category": "RAs", "status": "Active", "unit": "R404", "year": 2003, "make": "Buffalo", "model": "Trailer", "vin": "1B9CC18123J463142", "type": "Trailer", "license": "911 824", "regExp": "2027-04-01", "parkingLoc": "@ Latham Springs", "comments": "10 Hauler / Canoe Trailer (Hemptead)"}, {"category": "RAs", "status": "Active", "unit": "R405", "year": 2003, "make": "Pace American", "model": "CS58SA", "vin": "47ZFB08163X026216", "type": "Trailer", "license": "910 8229", "regExp": "2027-04-01", "parkingLoc": "Inside Dixon", "comments": "Single axle, Small RA Trailer"}, {"category": "RAs", "status": "Active", "unit": "R406", "year": 2011, "make": "W-W", "model": "Apache", "vin": "11WHC162XBW307122", "type": "Trailer", "license": "910 7988", "regExp": "2027-04-01", "parkingLoc": "Inside Dixon", "comments": "State Race Trailer"}, {"category": "RAs", "status": "Active", "unit": "R401", "year": 1992, "make": "Well Cargo", "model": "Trailer", "vin": "1WC200E23N2018486", "type": "Trailer", "license": "57T DVV", "regExp": "2020-07-20", "parkingLoc": "@ Latham Springs", "comments": "12' OLd Builders trailer used as storage for RA's not"}, {"category": "RAs", "status": "Active", "unit": "", "year": null, "make": "", "model": "Trailer", "vin": "unknown", "type": "Trailer", "license": null, "regExp": null, "parkingLoc": "@ Latham Springs", "comments": "Semi used for Storage at Latham Springs"}, {"category": "RAs", "status": "Active", "unit": "", "year": null, "make": "", "model": "BBQ Pit", "vin": "none", "type": "Trailer", "license": null, "regExp": null, "parkingLoc": "@ Latham Springs", "comments": "BBQ Pit at Latham Springs used at LTC"}, {"category": "RAs", "status": "Active", "unit": "", "year": null, "make": "", "model": "Boats", "vin": "none", "type": "Canoe", "license": null, "regExp": null, "parkingLoc": "@ Latham Springs", "comments": "20 canoes (10 Discovery 169 and 10 Kineo 196)"}, {"category": "Dixon", "status": "Active", "unit": "E301", "year": 2006, "make": "Toyota", "model": "7FDU25", "vin": "Serial #62140", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": "Inside Dixon", "comments": "Diesel Fork Lift, Side shifter"}, {"category": "Dixon", "status": "Active", "unit": "E302", "year": null, "make": "E-Z-GO", "model": "H0984", "vin": "Serial #332287", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": null, "comments": "Green golf cart"}, {"category": "Dixon", "status": "Active", "unit": "E303", "year": null, "make": "Toyota", "model": "8FGCU18", "vin": "Serial #17932", "type": "Equipment", "license": "N/A", "regExp": null, "parkingLoc": "Inside Dixon", "comments": "LP Fork Lift, U17558, Side shifter"}, {"category": "Dixon", "status": "Active", "unit": "D-668", "year": 2003, "make": "Mobile Suites", "model": null, "vin": "5KEFA362631000733", "type": "Trailer", "license": "51D 859", "regExp": "2027-05-01", "parkingLoc": "Outside Dixon", "comments": "Travel Trailer (Mary & Larry)"}, {"category": "Day Volunteers", "status": "Active", "unit": "D645", "year": 2019, "make": "Mercedes", "model": "Sprinter", "vin": "WDAPF4CD3KN034753", "type": "Vehicle", "license": "51D880", "regExp": "2026-12-01", "parkingLoc": null, "comments": "Box Truck"}, {"category": "Discipleship", "status": "Active", "unit": "D-661", "year": 2018, "make": "Look", "model": null, "vin": "53BLTEB20JU029512", "type": "Trailer", "license": "910 8417 E", "regExp": "2027-03-01", "parkingLoc": null, "comments": "Gaming Trailer"}, {"category": "Uncategorized", "status": "Active", "unit": "E304", "year": null, "make": "Toyota", "model": null, "vin": "", "type": null, "license": null, "regExp": null, "parkingLoc": null, "comments": "Electric Pallet Jack"}, {"category": "Uncategorized", "status": "Active", "unit": "D-681", "year": 2004, "make": "Motor Home", "model": "Itaska", "vin": "1FDWE35S63HB27814", "type": "Vehicle", "license": "BDY6022", "regExp": "2025-11-01", "parkingLoc": null, "comments": null}, {"category": "Uncategorized", "status": "Active", "unit": "", "year": 1983, "make": "JEEP", "model": "CJ7", "vin": "1JCCN87E4DT024528", "type": "Vehicle", "license": "NONE", "regExp": null, "parkingLoc": "Dixon", "comments": "OFF ROAD VEHICLE - TITLE ONLY - NO REGISTRATION"}], "units": [{"region": "North Texas - East", "status": "Active", "unitId": "TB FD 141 A", "equipCategory": "Feeding", "equipDesc": "Field Kitchen", "org": "Tarrant BA", "location": "Fort Worth - Southwestern Seminary", "county": "Tarrant", "contact": "John Hooser", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 143 F", "equipCategory": "Feeding", "equipDesc": "12FT Utility Trailer/Utility Trailer", "org": "Tarrant BA", "location": "Fort Worth-Southwestern Seminary", "county": "Tarrant", "contact": "John Hooser", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 144 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kubota, Tracked Loader, Model 65-2", "org": "Terry Schrader", "location": "Greenville, Tx", "county": "Hunt", "contact": "Terry Schrader", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 146 MEX", "equipCategory": "Heavy Equipment", "equipDesc": "Rippa, model R-13, Mini Excavator, 2, 910 Operating Weight, 57\"Boom Reach, 13.7 horsepower", "org": "Rolling Timbers", "location": "Weatherford", "county": "Parker", "contact": "Alan Gilliland (Owner)", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 145 F", "equipCategory": "Feeding", "equipDesc": "Box Truck", "org": "Tarrant BA", "location": "Fort Worth-Southwestern Seminary", "county": "Tarrant", "contact": "John Hooser", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB GN 108", "equipCategory": "Generator", "equipDesc": "12.5ks", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Mike Bradshaw", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 199 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kabota SVL97-2", "org": "Collin County Association", "location": "Prosper", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 168 MSS", "equipCategory": "Heavy Equipment", "equipDesc": "Mini-Skid Steer, Wacker Neuson SM100", "org": "Collin County B Association", "location": "Farmersville", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 174 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kubota 75-2", "org": "Collin County BA, Fairview", "location": "Gordonville", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 182 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Kubota SVL 75-2 Enclosed Cab track loader w/grapple", "org": "Collin County BA, Fairview", "location": "McKinney", "county": "Collin", "contact": "Reno Marsh", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 180 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Bobcat", "org": "Hillcrest BC", "location": "Cedar Hill", "county": "Dallas", "contact": "Jerry Hall", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 150 A?B?", "equipCategory": "Feeding", "equipDesc": "?????????????", "org": "Frisco FBC", "location": "Frisco", "county": "Collin", "contact": "David Wells", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 140 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer 2019 Kubota SVL95-2s", "org": "John Skelton", "location": "Leonard", "county": "Grayson", "contact": "John Skelton", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 128 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Kabota SVL75-3 Compact Track Loader", "org": "Redemption Tractor Worx Inc", "location": "Rockwall", "county": "Rockwall", "contact": "Ricky McDonald", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 178 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kabota SVL 75-2S", "org": "North Fort Worth Baptist Church", "location": "Fort Worth", "county": "Tarrant", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 192 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer NH LX 665", "org": "Kauf-Van BA", "location": "Terrell", "county": "Kaufman", "contact": "David Wallace", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB HE 157  MSS", "equipCategory": "Heavy Recovery", "equipDesc": "Skid Steer - Kubota SCL 1000", "org": "Denton B Association", "location": "Corinth", "county": "Denton", "contact": "David Meyer", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 130 L", "equipCategory": "Laundry Unit", "equipDesc": "3 washers / 4 dryers", "org": "Northside BC / Rolling Timbers", "location": "Weatherford", "county": "Parker", "contact": "Mark Randall", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 131 BX", "equipCategory": "Other / Box", "equipDesc": "Box", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Joe Bond", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 147 BX", "equipCategory": "Other / Box", "equipDesc": "Box", "org": "Arlington BC", "location": "Arlington", "county": "Tarrant", "contact": "Luke Bridges", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 100 ES", "equipCategory": "Other / Electronic", "equipDesc": "Electronic Support Unit", "org": "Denton  BA", "location": "Camp Copass", "county": "Denton", "contact": "Ed Dameron", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 130 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man Lift - JLG T500J-2014", "org": "Collin CountyAssociation", "location": "Princeton", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 127 ML", "equipCategory": "Other / Manlift", "equipDesc": "Tow Behind Manlift, 2023 Haulotte/Bil-Jax 5533A", "org": "Collin County B Assoc", "location": "Princeton", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 135 ML", "equipCategory": "Other / Manlift", "equipDesc": "Manlift - Haulotte 5533A", "org": "Denton BA", "location": "Camp Copass", "county": "Denton", "contact": "David Meyer", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 160 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man Lift Bil-Jax 3632T 36'", "org": "Kauf-Van Baptist Association", "location": "Terrell", "county": "Kaufman", "contact": "David Wallace", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 130 TNT", "equipCategory": "Other / Tent 40 x 60", "equipDesc": "tent", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Jim Wilcox", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 129 ML", "equipCategory": "Other/ Manlift", "equipDesc": "Haulotte 5533A Manlift", "org": "North Side BC", "location": "Weatherford", "county": "Parker", "contact": "Mark Randall", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB OT 146 ML", "equipCategory": "Other/Manlift", "equipDesc": "Manlift", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Dan Sell", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 111 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Collin BA", "location": "McKinney", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 119 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Collin BA", "location": "Fairview", "county": "Collin", "contact": "Wendell Romans", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 112 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Collin BA", "location": "McKinney", "county": "Collin", "contact": "Curt Neal", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 151 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw Trailer   HE Available", "org": "Denton  BA", "location": "Denton", "county": "Denton", "contact": "David Meyer", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 153 PU", "equipCategory": "Recovery", "equipDesc": "Chainsaw Sup. F250 truck", "org": "Denton  BA", "location": "Denton", "county": "Denton", "contact": "Sam McManis", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 142 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Gary Herndon", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 125 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Dan Sell", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 190 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Kauf-Van BA", "location": "Terrell", "county": "Kaufman", "contact": "David Wallace", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 133 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "North Side BC", "location": "Weatherford", "county": "Parker", "contact": "David Hinshaw", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 121 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw   HE Available", "org": "Lake Point Church", "location": "Rockwall", "county": "Rockwall", "contact": "Dan Williams", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB RC 149 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Lake Pointe Church", "location": "Rockwall", "county": "Rockwall", "contact": "Jan Rahmandar/Tony Rolater", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 152 S", "equipCategory": "Shower 4 stalls", "equipDesc": "Shower only: 8'x32' Trailer", "org": "Denton  BA", "location": "FBC Justin", "county": "Denton", "contact": "Ken Hammock", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 113 SL", "equipCategory": "Shower/Laundry 6st", "equipDesc": "1 washer / 2 dryers", "org": "Ellis Christian DR", "location": "Waxahachie", "county": "Ellis", "contact": "Ladonna Hagler", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB CC 002 CC", "equipCategory": "Communications", "equipDesc": "Command Unit/CC", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB CH 001 CU", "equipCategory": "Child Care Unit", "equipDesc": "Child Care Unit/No Trailer", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Tracy Barber", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 010 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen 35ft DB", "org": "TBM Event Trailer", "location": "Dallas", "county": "Dallas", "contact": "Ray Gann", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 011 D", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Ray Gann", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB GN 030 GT", "equipCategory": "Generator Trailer 208", "equipDesc": "35kw", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB GN 031 GT", "equipCategory": "Generator Trailer 440", "equipDesc": "200 kw", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB GN 033 GT", "equipCategory": "Generator - Kohler", "equipDesc": "230 Kw", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "David Wells", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 040 L", "equipCategory": "Laundry", "equipDesc": null, "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "David Wells", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 000 RT", "equipCategory": "Tractor 2000", "equipDesc": null, "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 003 RT", "equipCategory": "Tractor 2003", "equipDesc": "Tractor/RT", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 006 RT", "equipCategory": "Tractor 2006", "equipDesc": "Tractor/RT", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 014 UTV", "equipCategory": "Miscellaneous Vehicles", "equipDesc": "Mule", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 025 PV", "equipCategory": "VAN", "equipDesc": "350 Van/PV", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 026 PV", "equipCategory": "VAN", "equipDesc": "350 Van/PV", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 096 PU", "equipCategory": "Vehicle", "equipDesc": "350 Pickup/PU", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB MV 097 PU", "equipCategory": "Vehicle", "equipDesc": "350 Duel pickup/PU", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 003 SL", "equipCategory": null, "equipDesc": null, "org": null, "location": null, "county": null, "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 005 SL", "equipCategory": "Shower Unit/laundry", "equipDesc": "Shower Unit/Flexable Number 3+", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Phill Elery", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 006 SL", "equipCategory": "Shower Unit/laundry", "equipDesc": "Shower Unit/Flexable Number 3+", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Phill Elery", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 007 SL", "equipCategory": "Shower Unit/laundry", "equipDesc": "4 shower; 4 washer, 5 dryers", "org": "TBM", "location": "Dallas", "county": null, "contact": "Phil Elery", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 008 S", "equipCategory": "Shower Unit/Shower only", "equipDesc": "9 stalls", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Phill Elery", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB SH 009  S", "equipCategory": "Shower Unit/Shower only", "equipDesc": "9 stalls", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "Phill Elery", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 012 F", "equipCategory": "Feeding Trailer Support", "equipDesc": "Kitchen Support 20 ft", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB FD 013 F", "equipCategory": "Feeding Trailer Support", "equipDesc": "35' Food Trailer/DB", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 019 FB", "equipCategory": "Trailer FB Big Tex 22'", "equipDesc": "Vehicle/Flatbed Trailer", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 020 DB", "equipCategory": "Trailer DB 24'", "equipDesc": "Contents: refrigerators", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "added 8/9/2017", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 021 FB", "equipCategory": "Trailer FB Big Tex 22'", "equipDesc": "Trailer / Flatbed", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "added 8/9/2017", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 022 UT", "equipCategory": "Trailer Utility 12'", "equipDesc": "Utility Trailer/mule", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 023 DB", "equipCategory": "Trailer Dry Box 53'", "equipDesc": "Trainer / Dry Box", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 024 DB", "equipCategory": "Trailer Dry Box 20'", "equipDesc": "Trailer / Dry Box", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "added 2/3/2017", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 025 DB", "equipCategory": "Trailer Dry Box 20'", "equipDesc": "Trailer / Dry Box", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "added 2/3/2017", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 026 UT", "equipCategory": "Trailer", "equipDesc": "Support trailer, multiple uses", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "added 3/21/2018", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 027 ES", "equipCategory": "Trailer", "equipDesc": "Electronic Support", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "David Wells", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB TL 028 E", "equipCategory": "Trailer", "equipDesc": "Electrical Equipment", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": "David Wells", "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB WT 034 P", "equipCategory": "Water Purification", "equipDesc": "WPU-6GPM", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB WT 035 P", "equipCategory": "Water Purification", "equipDesc": "Water Resources/WPU-6GPM", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB WT 036 P", "equipCategory": "Water Purification", "equipDesc": "WPU-6GPM", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB WT 037 P", "equipCategory": "Water Purification", "equipDesc": "WPU-2GPM", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - East", "status": "Active", "unitId": "TB WT 038 P", "equipCategory": "Water Purification", "equipDesc": "WPU", "org": "TBM", "location": "Dallas", "county": "Dallas", "contact": null, "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB HE 193 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Bobcat T190", "org": "PK Lake Ministries DR/Palo Pinto BA", "location": "Graford", "county": "Palo Pinto", "contact": "Alan J. Fires", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB MV 100 UTV", "equipCategory": "MISC", "equipDesc": "Mule - Kawasaki", "org": "PK Lake Ministries DR/Palo Pinto BA", "location": "Graford", "county": "Palo Pinto", "contact": "Alan Fires", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB RC 132 C/M", "equipCategory": "Recovery", "equipDesc": "Chainsaw/Cleanout", "org": "Wylie BC", "location": "Abilene", "county": "Taylor", "contact": "Terry Beal", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB HE 120 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer JD 320", "org": "Beltway Park BC", "location": "Abilene", "county": "Taylor", "contact": "Jeff Smith", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB HE 175 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kubota SV75", "org": "Beltway Park BC", "location": "Abilene", "county": "Taylor", "contact": "Raymon Ince", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB HE 163 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Bobcat T630", "org": "Beltway Park BC", "location": "Abilene", "county": "Taylor", "contact": "Jay Wise", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB RC 183 T", "equipCategory": "Recovery", "equipDesc": "Temp. Roof", "org": "Beltway Park BC/Boots on the Ground Ministry", "location": "Abilene", "county": "Taylor", "contact": "Matt Mooney", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB OT 188 ML", "equipCategory": "Other", "equipDesc": "Manlift, Genie, T-Z-50", "org": "Wylie BC", "location": "Abilene", "county": "Taylor", "contact": "Terry Beal", "mouDate": null}, {"region": "North Texas - West", "status": "Active", "unitId": "TB HE 195 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer, 2005 white, bobcate S205", "org": "Wylie BC", "location": "Abilene", "county": "Taylor", "contact": "Terry Beal", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 230 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Compact Track Loader Kubota SVL75-2", "org": "Harmony-Pittsburg BA", "location": "Pittsburg", "county": "Camp", "contact": "Bruce Slaven", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 255 TR", "equipCategory": "Heavy Equipment", "equipDesc": "Tractor Kubota L3800 HST", "org": "Harmony/Pittsburg BA", "location": "Pittsburg", "county": "Camp", "contact": "Bruce Slaven", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB RC 223 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw   HE Available", "org": "Harmony-Pittsburg BA", "location": "Pittsburg", "county": "Camp", "contact": "Bruce Slaven", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB OT 258 ML", "equipCategory": "Heavy Equipment", "equipDesc": "Man Lift JLG T500J / Towable", "org": "Harmony Pittsburg", "location": "Pittsburg", "county": "Camp", "contact": "Bruce Slaven", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB RC 237 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Harmony Pittsburg BA", "location": "Pittsburg", "county": "Camp", "contact": "Bruce Slaven", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 225 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Track Loader; Cat 259, 74 Hp", "org": "FBC, Alto, TX", "location": "Alto", "county": "Cherokee", "contact": "James Hall", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 249 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer", "org": "East Texas Unit/FBC,Athens", "location": "Athens", "county": "Henderson", "contact": "Michael Gillert", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB OT 246 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man lift", "org": "East Texas Unit/FBC,Athens", "location": "Athens", "county": "Henderson", "contact": "Michael Gillert", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB RC 257 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "East Texas Unit/FBC,Athens", "location": "Athens", "county": "Henderson", "contact": "Michael Gillert", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 273 TR", "equipCategory": "Heavy Equipment", "equipDesc": "Tractor", "org": "East Texas Unit/FBC,Athens", "location": "Athens", "county": "Henderson", "contact": "Michael Gillert (owner)", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB RC 227 AP", "equipCategory": "Recovery", "equipDesc": "Asset Protection", "org": "Christian Hunters and Angler", "location": "Flint", "county": "Smith", "contact": "Bobby Brasher", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB HE 278 TR", "equipCategory": "Heavy Equipment", "equipDesc": "John Deere, Model 5105 Tractor", "org": "FBC, Tyler", "location": "Tyler", "county": "Smith", "contact": "Robert Hooker", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB RC 275 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "FBC, Tyler", "location": "Tyler", "county": "Smith", "contact": "Robert Watson", "mouDate": null}, {"region": "East Texas - North", "status": "Active", "unitId": "TB SH 260 SL", "equipCategory": "Shower/Laundry 6st", "equipDesc": "3 washers /3 dryers", "org": "Green Acres BC", "location": "Tyler", "county": "Smith", "contact": "John Hart", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB OT 253 ML", "equipCategory": "Heavy Equipment", "equipDesc": "Manlift-2020 Niftylift TM50HGE Trailier Mounted", "org": "Deep East Texas DR Team", "location": "Nederland", "county": "Jefferson", "contact": "Rocky Mize", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB RC 245 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "FBC Nederland", "location": "Nederland", "county": "Jefferson", "contact": "Michael Pedigo", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB FD 219 A", "equipCategory": "Feeding / Unit 8x20 Transport Trailer TLP #53D063", "equipDesc": "Field Kitchen", "org": "West Conroe BC", "location": "Conroe", "county": "Montgomery", "contact": "Clark May", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB HE 250 MSS", "equipCategory": "Heavy Equipment", "equipDesc": "Mini Skid Steer, Wacker Neuson SM100 Utility Track Loader", "org": "Deep East Texas DR Team", "location": "Orange/Nederland", "county": "Jefferson", "contact": "Rickie Parker", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB HE 260 TR", "equipCategory": "Heavy Equipment", "equipDesc": "Tractor John Deer 4520 / grapple", "org": "Deep East Texas DR Team", "location": "Orange", "county": "Orange", "contact": "Carey Stark", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB HE 262 TR", "equipCategory": "Heavy Equipment", "equipDesc": "Tractor Manhindra 2816 /grapple", "org": "Deep East Texas DR Team", "location": "Orange", "county": "Orange", "contact": "Rocky Mize", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB HE 265 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Trac Loader (SS) w/grapple/bucket/deck trailer", "org": "Deep East Texas DR Team", "location": "Orange", "county": "Orange", "contact": "Carey Stark", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB RC 260 C/T", "equipCategory": "Recovery", "equipDesc": "Chainsaw / Temporary Roof", "org": "Deep East Texas DR Team", "location": "Orange", "county": "Orange", "contact": "Rocky Mize", "mouDate": null}, {"region": "East Texas - South", "status": "Active", "unitId": "TB HE 269 TLH", "equipCategory": "Heavy Equipment", "equipDesc": "Bobcat v518 Telehandler 4x4 drive rubber tires Lift capacity 5,500 lbs, lift ht 20' + 12' stringer", "org": "Deep East Texas DR Team", "location": "Orange", "county": "Orange", "contact": "Rocky Mize", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB FD 317B", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "SE Texas Disaster Relief", "location": "Alvin", "county": "Brazoria", "contact": "Phil Winget", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB FD 333 A", "equipCategory": "Feeding / Unit [canteen]", "equipDesc": "300 meals max.- not equipped for TBM callout", "org": "University BC", "location": "Houston", "county": "Harris", "contact": "M.H. [Butch] Peters", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB OT 350 BX", "equipCategory": "Other / Box", "equipDesc": "Box", "org": "Kingsland BC D.Response", "location": "Katy", "county": "Harris", "contact": "Ted Whiteman", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB OT 360 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man Lift  50 FT", "org": "Kingsland BC D.Response", "location": "Katy", "county": "Harris", "contact": "Marcell Hunt", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB HE 320 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kubota 755 VL", "org": "Kingsland BC", "location": "Katy", "county": "Harris", "contact": "Marcell Hunt", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB OT 325 ML", "equipCategory": "Other / Manlift", "equipDesc": null, "org": "Kingsland BC", "location": "Katy", "county": "Harris", "contact": "Marcell Hunt", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB HE 347 MSS", "equipCategory": "Heavy Equipment", "equipDesc": "Mini Skid Steer-Wacker Neuson SM100", "org": "Kingsland BC", "location": "Katy", "county": "Harris", "contact": "Marcell Hunt", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB RC 334 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "University Baptist Church", "location": "Houston", "county": "Harris", "contact": "Billy Richardson", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB RC 335 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "University BC", "location": "Houston", "county": "Harris", "contact": "Jim Tatum", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB RC 355 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Kingsland BC D.Response", "location": "Katy", "county": "Harris", "contact": "Marcell Huntt", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB RC 345 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Kingsland BC D.Response", "location": "Katy", "county": "Harris", "contact": "Phil Clasen", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB SH 304 SL", "equipCategory": "Shower/Laundry 6st", "equipDesc": "4 shower stalls; 3 washers; 4 dryers", "org": "SE Texas Disaster Relief", "location": "Pasadena", "county": "Harris", "contact": "Jeff Fuqua", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB FD 318 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "West Conroe BC", "location": "Conroe", "county": "Montgomery", "contact": "Clark May", "mouDate": null}, {"region": "Coastal Plains - East", "status": "Active", "unitId": "TB FD 319 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "West Conroe BC", "location": "Conroe", "county": "Montgomery", "contact": "Kay Robinson", "mouDate": null}, {"region": "Coastal Plains - West", "status": "Active", "unitId": "TB HE 335 TR", "equipCategory": "Heavy Equipment", "equipDesc": "New Holland, tractor, Model TC 450", "org": "FBC, Bay City", "location": "Bay City", "county": "Matagorda", "contact": "Erwin Ward (Owner)", "mouDate": null}, {"region": "Coastal Plains - West", "status": "Active", "unitId": "TB RC 312 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "FBC", "location": "Bay City", "county": "Matagorda", "contact": "Billy Welborn", "mouDate": null}, {"region": "Coastal Plains - West", "status": "Active", "unitId": "TB HE 323 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Loader - John Deere 323", "org": "FBC, Bay City", "location": "Bay City", "county": "Matagorda", "contact": "Billy Welborn", "mouDate": null}, {"region": "Coastal Plains - West", "status": "Active", "unitId": "TB OT 330 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man lift Haulotte 3632T", "org": "FBC", "location": "Bay City", "county": "Matagorda", "contact": "Billy Welborn", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB OT 404 BX", "equipCategory": "Other / Box", "equipDesc": "Box", "org": "Gambrell Baptist Assoc", "location": "Kenedy", "county": "Karnes", "contact": "Bill Pyle, Jr.", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB RC 406 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw truck & trailer", "org": "Shearer Hills BC San Antonio", "location": "San Antonio", "county": "Bexar", "contact": "John Weber, Jr.", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB MV 410 UTV", "equipCategory": "Miscellaneous Vehicles", "equipDesc": "Mule - Kawasaki", "org": "FBC, San Antonio DR Team", "location": "Hunt", "county": "Kerr", "contact": "Bryant Truitt", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB RC 411 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Texas Chainsaw Ministry", "location": "Kerrville", "county": "Kerr", "contact": "Don Nelson", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB HE 418 SS", "equipCategory": "Heavy Equipment", "equipDesc": "2017 Caterpillar 259D Skid Steer", "org": "Bluebonnet BA", "location": "New Braunfels", "county": "Comal", "contact": "Mark Smith", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB MV 420 UTV", "equipCategory": "Miscellaneous Vehicles", "equipDesc": "Mule - Kawasaki", "org": "Medina River BA", "location": "Mt Home", "county": "Kerr", "contact": "Rick Boles", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB GN 423 GT", "equipCategory": "Generator w/trailer?", "equipDesc": "35kw", "org": "Gambrell Assoc.", "location": "Stockdale", "county": "Wilson", "contact": "Bill Pyle, Jr.", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB GN 427 GT", "equipCategory": "Generator", "equipDesc": "55 kw Generator", "org": "Crosspoint Community Church", "location": "LaGrange", "county": "Fayette", "contact": "Butch Moore", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB GN 428 GT", "equipCategory": "Generator", "equipDesc": "55 kw Generator", "org": "Crosspoint Community Church", "location": "LaGrange", "county": "Fayette", "contact": "Butch Moore", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB HE 429 MSS", "equipCategory": "Heavy Equipment", "equipDesc": "Small Compact Trackloader", "org": "TXM-Shearer Hills BC", "location": "San Antonio", "county": "Bexar", "contact": "John Weber,Jr.", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB RC 432 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw Trailer: 2008 Pace American Journey 14ft. cargo trailer", "org": "Bluebonnet Chainsaw Ministry FBC Canyon Lake", "location": "FBC Canyon Lake", "county": "Comal", "contact": "Mark Bennett", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB OT 433 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man Lift - Hauotte 36T", "org": "Shearer Hills BC San Antonio", "location": "San Antonio", "county": "Bexar", "contact": "John Weber,Jr.", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB OT 435 ML", "equipCategory": "Other / Manlift", "equipDesc": "Man Lift Nifty Lift  TM 50 FT Towable", "org": "Bluebonnet Chainsaw Ministry FBC Canyon Lake", "location": "FBC Canyon Lake", "county": "Comal", "contact": "Mark Bennett", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB HE 450 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer", "org": "Texas Chainsaw Ministry, Inc.", "location": "Kerrville", "county": "Kerr", "contact": "Rick Boles", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB OT 453 ML", "equipCategory": "Other", "equipDesc": "Manlift", "org": "Texas Chainsaw Ministry, Inc.", "location": "Kerrville", "county": "Kerr", "contact": "Rick Boles", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB RC 458 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw   HE Available", "org": "Texas Chainsaw Ministry, Inc.", "location": "Kerrville", "county": "Kerr", "contact": "Rick Boles", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB HE 468 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Bobcat, Model 763 Skid Steer", "org": "Texas Chainsaw Ministry, Inc.", "location": "Kerrville", "county": "Kerr", "contact": "Rick Boles", "mouDate": null}, {"region": "Southern Plains", "status": "Active", "unitId": "TB HE 467 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kobota 75 T", "org": "2nd BC LaGrange", "location": "La Grange", "county": "Fayette", "contact": "Butch Moore", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB SH 525 SL", "equipCategory": "Shower/Laundry", "equipDesc": "2 washers/2 dryers/4 shower stalls", "org": "Central Texas Christian Disaster Response Team", "location": "Belton", "county": "Bell", "contact": "Monica McDugal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB FD 590 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "Central TX Christian DRT", "location": "Belton", "county": "Bell", "contact": "Jim McDougal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB FD 591 F", "equipCategory": "Feeding Trailer/Support", "equipDesc": "Feeding Support", "org": "Central TX Christian DRT", "location": "Belton", "county": "Bell", "contact": "Jim McDougal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB FD 592 F", "equipCategory": "Feeding Box Truck Trailer/Support", "equipDesc": "Feeding Support", "org": "Central TX Christian DRT", "location": "Belton", "county": "Bell", "contact": "Jim McDougal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB FD 597 F", "equipCategory": "Church Support Trailer", "equipDesc": "Feeding Support", "org": "Central TX Christian DRT", "location": "Belton", "county": "Bell", "contact": "Jim McDougal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB GN 507 GT", "equipCategory": "Generator", "equipDesc": "35kw", "org": "Central Texas Christian Disaster Response Team", "location": "Belton", "county": "Bell", "contact": "Jim McDougal", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 538 T", "equipCategory": "Recovery", "equipDesc": "Temporary Roof", "org": "Crestview BC", "location": "Georgetown", "county": "Williamson", "contact": "Mike Pickle", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB OT 540 BX", "equipCategory": "Other / Box", "equipDesc": "Box Ministry", "org": "Crestview BC", "location": "Georgetown", "county": "Williamson", "contact": "Mike Lovelace", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 520 R", "equipCategory": "Recovery", "equipDesc": "Rebuild", "org": "Crestview BC", "location": "Georgetown", "county": "Williamson", "contact": "Charles Baker", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB SH 501 SL", "equipCategory": "Shower/Laundry 4st", "equipDesc": "4 washers / 5 dryers", "org": "Austin BA", "location": "Austin", "county": "Travis", "contact": "Bob Andrews", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB GN 505 GT", "equipCategory": "Generator", "equipDesc": "30kw Gillette Model 300-1-1", "org": "Austin BA", "location": "Austin", "county": "Travis", "contact": "Bob Andrews", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 580 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Paluxy Baptist Assoc", "location": "Granbury", "county": "Hood", "contact": "Greg Rose", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 590 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw - Sm unit - Ground & off ground", "org": "Stonewater Church", "location": "Granbury", "county": "Hood", "contact": "Tim Blackshear", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB HE 543 EX", "equipCategory": "Heavy Equipment", "equipDesc": "John Deer 60P (2024) Excavator", "org": "Stonewater Church", "location": "Granbury", "county": "Hood", "contact": "Tommy Prosise", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB HE 577 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skit steer/2021 case TV450B", "org": "Stonewater Church", "location": "Granbury", "county": "Hood", "contact": "Tom Brooks", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB HE 579 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer 2014 John Deere 329E", "org": "Stonewater Church", "location": "Granbury", "county": "Hood", "contact": "Tommy Prosise", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB HE  575 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer", "org": "Stonewater Church", "location": "Granbury", "county": "Hood", "contact": "Tim Blackshear", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB  OT 567 ML", "equipCategory": "Heavy Equipment", "equipDesc": "Man Lift Genie TZ-50 / Articulating", "org": "Waco Regional Assoc.,", "location": "Waco", "county": "McLennan", "contact": "William Perkins", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB HE 502 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer  John Deer 317", "org": "Waco Regional Assoc.,", "location": "Waco", "county": "McLennan", "contact": "William Perkins", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB OT 560 BX", "equipCategory": "Other / Box", "equipDesc": "Box Unit Trailer", "org": "Waco Regional BA", "location": "China Springs", "county": "McLennan", "contact": "James Tindell", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 585 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw   HE Available", "org": "Waco Regional BA", "location": "China Spring", "county": "McLennan", "contact": "James Tindell", "mouDate": null}, {"region": "Central Texas - East", "status": "Active", "unitId": "TB RC 542 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Waco Regional BA", "location": "China Spring", "county": "McLennan", "contact": "James Tindell", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB OT 509 BX", "equipCategory": "Box Unit 16' tandem 5200 axels box trailer", "equipDesc": "Box", "org": "Burnet/Llano BA", "location": "Granite Shoals", "county": "Llano", "contact": "Charles Myers", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB HE 524 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Compact Track Loader, Bobcate T770", "org": "Coggin Avenue BC", "location": "Brownwood", "county": "Brown", "contact": "Chris Whitson", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB RC 527 R", "equipCategory": "Rebuild Unit", "equipDesc": "Rebuild Unit", "org": "FBC, Marble Falls", "location": "Marble Falls", "county": "Burnet", "contact": "Todd Hickinbottom", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB RC 528 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw: 2024 Sundowner Cargo 16 BP VN", "org": "Coggin Avenue BC", "location": "Brownwood", "county": "Brown", "contact": "Chris Whitson", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB HE 531 MSS", "equipCategory": "Heavy Equipment", "equipDesc": "Small Compact Trackloader", "org": "FBC, Marble Falls", "location": "Marble Falls", "county": "Burnet", "contact": "Benny Williams", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB RC 545 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Burnet/Llano BA", "location": "Burnet", "county": "Burnet", "contact": "Bob McClimans", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB RC 548 M", "equipCategory": "Recovery", "equipDesc": "20 Ft. Mud-Out trailer", "org": "FBC, Marble Falls", "location": "Marble Falls", "county": "Burnet", "contact": "Phillip Brown", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB HE 559 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skidsteer: John Deere 317 W/Graffle & loader", "org": "FBC, Marble Falls", "location": "Marble Falls", "county": "Burnet", "contact": "Benny Williams", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB OT 565 ML", "equipCategory": "Other/Manlift", "equipDesc": "Aerial Titan Haulotte 55333 Manlift", "org": "FBC, Marble Falls", "location": "Marble Falls", "county": "Burnet", "contact": "Benny Williams", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB HE 570 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Kobota 95SVL", "org": "FBC Burnet", "location": "Burnet", "county": "Burnet", "contact": "Mark Madison", "mouDate": null}, {"region": "Central Texas - West", "status": "Active", "unitId": "TB FD 570 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen TBMD 570 A", "org": "West Central TX Sp FD", "location": "San Angelo", "county": "Tom Green", "contact": "Joe Bill Averitt", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB OT 701 BX", "equipCategory": "Other / Box", "equipDesc": "Box", "org": "Samnorwood BC", "location": "Shamrock", "county": "Collingsworth", "contact": "Gary Oldham", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB HE 720 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer Cat 289D T", "org": "Paramont BC", "location": "Amarillo", "county": "Potter", "contact": "Joe Henard", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB MV 735 UTV", "equipCategory": "Miscellaneous Vehicles", "equipDesc": "Mule - 2008 Tery-X Kawasaki", "org": "Paramont BC", "location": "Amarillo", "county": "Potter", "contact": "Joe Henard", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB RC 727 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw - 16 ft enclosed Cargo - Hitch Pull", "org": "Paramount BC", "location": "Amarillo", "county": "Potter", "contact": "Ernie McNabb", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB SH 726 SL", "equipCategory": "Shower/Laundry 6st", "equipDesc": "2 washer / 2 dryer", "org": "FBC Amarillo", "location": "Amarillo", "county": "Potter", "contact": "Roger Hanson", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB RC 728 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Paramount BC", "location": "Amarillo", "county": "Potter", "contact": "Ernie McNabb", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB TL 729 UT", "equipCategory": "Utility Trailer", "equipDesc": "10 Ft. enclosed Cargo  - Hitch Pull", "org": "Paramount BC", "location": "Amarillo", "county": "Potter", "contact": "Ernie McNabb", "mouDate": null}, {"region": "Top of Texas - North", "status": "Active", "unitId": "TB OT 725 ML", "equipCategory": "Heavy Equipment", "equipDesc": "Man Lift Genie - 55 ft. - haulotte, 5533A", "org": "Paramount BC, DR Team", "location": "Amarillo", "county": "Potter", "contact": "Ernie McNabb", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB SH 710 L", "equipCategory": "Shower/Laundry 4st", "equipDesc": "2 washers / 2 dryers", "org": "FBC O'Donnel", "location": "O'Donnell", "county": "Lynn", "contact": "Travis Mires", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB RC 711 M", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "Mark Shogren", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB RC 713 R", "equipCategory": "Recovery", "equipDesc": "Mudout", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "Gary Beaty", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB FD 712 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "Gary Beaty", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB FD 715 A", "equipCategory": "Feeding / Unit", "equipDesc": "Field Kitchen", "org": "FBC, Serve Lubbock", "location": "Lubbock", "county": "Lubbock", "contact": "Jerry Ramirez", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB HE 721 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skidsteer Kibota 75 T", "org": "FBC Lockney", "location": "Lockney", "county": "Floyd", "contact": "Keith Wilburn", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB HE 722 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer", "org": "FBC, Cotton Center", "location": "Cotton Center", "county": "Hale", "contact": "Joe McFerrin", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB OT 731 ML", "equipCategory": "Other/ Manlift", "equipDesc": "5533A Towable Boom, Haulotte", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "David Bloodworth", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB MV 736 UTV", "equipCategory": "Miscellaneous Vehicles", "equipDesc": "Mule", "org": "FBC Lockney", "location": "Lockney", "county": "Floyd", "contact": "Keith Wilburn", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB HE 740 SS", "equipCategory": "Heavy Equipment", "equipDesc": "Skid Steer, Kubota, Model SVC 75-3", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "Rocque Shaw", "mouDate": null}, {"region": "Top of Texas - South", "status": "Active", "unitId": "TB RC 756 C", "equipCategory": "Recovery", "equipDesc": "Chainsaw", "org": "Southcrest BC", "location": "Lubbock", "county": "Lubbock", "contact": "Robert Perkins", "mouDate": null}]};
+
+function parseISODateLocal(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function loadEmbeddedData() {
+  if (!EMBEDDED_DATA) return;
+  fleetRows = (EMBEDDED_DATA.fleet || []).map(r => ({ ...r, regExp: parseISODateLocal(r.regExp) }));
+  unitRows = (EMBEDDED_DATA.units || []).map(r => ({ ...r, mouDate: parseISODateLocal(r.mouDate) }));
+  document.getElementById('status-fleet').textContent = fleetRows.length + ' vehicles loaded (from last Drive refresh)';
+  document.getElementById('status-fleet').classList.add('ok');
+  document.getElementById('status-units').textContent = unitRows.length + ' units loaded (from last Drive refresh)';
+  document.getElementById('status-units').classList.add('ok');
+  document.getElementById('fleet-empty').style.display = 'none';
+  document.getElementById('units-empty').style.display = 'none';
+  const note = document.getElementById('refresh-note');
+  note.textContent = 'Showing data refreshed from Google Drive on ' + (EMBEDDED_DATA.generatedAt || 'unknown date') + '. Drop in a file above to view something else instead.';
+  note.style.display = 'block';
+}
+
+const tooltip = document.getElementById('tooltip');
+function showTooltip(evt, html) {
+  tooltip.innerHTML = '';
+  tooltip.appendChild(document.createTextNode(html));
+  tooltip.classList.add('show');
+  moveTooltip(evt);
+}
+function moveTooltip(evt) {
+  tooltip.style.left = (evt.clientX + 14) + 'px';
+  tooltip.style.top = (evt.clientY + 14) + 'px';
+}
+function hideTooltip() { tooltip.classList.remove('show'); }
+
+function parseWorkbook(file, kind) {
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    let wb;
+    try {
+      wb = await XLSXLite.readWorkbook(e.target.result);
+    } catch (err) {
+      const statusEl = document.getElementById(kind === 'fleet' ? 'status-fleet' : 'status-units');
+      statusEl.textContent = 'Could not read that file: ' + err.message;
+      statusEl.classList.remove('ok');
+      return;
+    }
+    if (kind === 'fleet') {
+      fleetRows = [];
+      wb.SheetNames.forEach(name => {
+        if (name === 'Summary') return;
+        const rows = XLSXLite.sheetToJson(wb.Sheets[name], { defval: null });
+        rows.forEach(r => {
+          if (!r['Unit #'] && !r['VIN / Serial #'] && !r['Make']) return;
+          fleetRows.push({
+            category: name,
+            status: (r['Status'] || '').toString().trim(),
+            unit: r['Unit #'] || '',
+            year: r['Year'] || '',
+            make: r['Make'] || '',
+            model: r['Model'] || '',
+            vin: r['VIN / Serial #'] || '',
+            type: r['Type'] || '',
+            license: r['License Number'] || '',
+            regExp: r['Registration Exp. Date'] || null,
+            parkingLoc: r['Usual Parking Location'] || '',
+            comments: r['Comments'] || ''
+          });
+        });
+      });
+      document.getElementById('status-fleet').textContent = fleetRows.length + ' vehicles loaded';
+      document.getElementById('status-fleet').classList.add('ok');
+      document.getElementById('fleet-empty').style.display = 'none';
+    } else {
+      unitRows = [];
+      wb.SheetNames.forEach(name => {
+        if (name === 'Summary') return;
+        const rows = XLSXLite.sheetToJson(wb.Sheets[name], { defval: null });
+        rows.forEach(r => {
+          if (!r['Unit ID #']) return;
+          unitRows.push({
+            region: name,
+            status: (r['Status'] || '').toString().trim(),
+            unitId: r['Unit ID #'] || '',
+            equipCategory: r['Equipment Category'] || '',
+            equipDesc: r['Equipment Description'] || '',
+            org: r['Organization Name'] || '',
+            location: r['Location'] || '',
+            county: r['County'] || '',
+            contact: r['Primary Contact'] || '',
+            mouDate: r['MOU Date'] || null
+          });
+        });
+      });
+      document.getElementById('status-units').textContent = unitRows.length + ' units loaded';
+      document.getElementById('status-units').classList.add('ok');
+      document.getElementById('units-empty').style.display = 'none';
+    }
+    renderAll();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function wireDropzone(zoneId, inputId, kind) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  input.addEventListener('change', () => { if (input.files[0]) parseWorkbook(input.files[0], kind); });
+  ['dragover','dragenter'].forEach(evt => zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt => zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+  zone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f) parseWorkbook(f, kind);
+  });
+}
+wireDropzone('dz-fleet', 'file-fleet', 'fleet');
+wireDropzone('dz-units', 'file-units', 'units');
+
+function statusKey(status) {
+  return STATUS_COLOR[status] || 'unknown';
+}
+
+function buildKpis(containerId, total, counts) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const tiles = [
+    { label: 'Total', value: total, cls: '' },
+    { label: 'Active', value: counts['Active'] || 0, cls: 'good' },
+    { label: 'Needs Attention', value: counts['Needs Attention'] || 0, cls: 'warning' },
+    { label: 'Out of Service / Retired', value: counts['Out of Service / Retired'] || 0, cls: 'critical' },
+    { label: 'Unset status', value: counts['(blank)'] || 0, cls: '' }
+  ];
+  tiles.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'tile ' + t.cls;
+    const l = document.createElement('div'); l.className = 'label'; l.textContent = t.label;
+    const v = document.createElement('div'); v.className = 'value'; v.textContent = t.value.toLocaleString();
+    d.appendChild(l); d.appendChild(v);
+    el.appendChild(d);
+  });
+}
+
+function buildStackedChart(containerId, groups) {
+  // groups: [{name, counts:{Active,Needs Attention,Out of Service / Retired}, total}], sorted desc by total
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const chart = document.createElement('div');
+  chart.className = 'barchart';
+  const maxTotal = Math.max(1, ...groups.map(g => g.total));
+  groups.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'barrow';
+    const label = document.createElement('div');
+    label.className = 'rowlabel';
+    label.textContent = g.name;
+    label.title = g.name;
+    const track = document.createElement('div');
+    track.className = 'track';
+    track.style.width = '100%';
+    const widthPct = (g.total / maxTotal) * 100;
+    const inner = document.createElement('div');
+    inner.style.width = widthPct + '%';
+    inner.style.display = 'flex';
+    inner.style.height = '100%';
+    STATUS_ORDER.concat(['(blank)']).forEach(statusName => {
+      const count = g.counts[statusName] || 0;
+      if (count <= 0) return;
+      const seg = document.createElement('div');
+      seg.className = 'seg';
+      const key = statusName === '(blank)' ? 'unknown' : statusKey(statusName);
+      seg.style.background = key === 'unknown' ? 'var(--baseline)' : STATUS_HEX[key];
+      seg.style.width = ((count / g.total) * 100) + '%';
+      seg.tabIndex = 0;
+      const label2 = statusName === '(blank)' ? 'No status set' : statusName;
+      seg.addEventListener('pointermove', e => showTooltip(e, g.name + ' — ' + label2 + ': ' + count));
+      seg.addEventListener('pointerleave', hideTooltip);
+      seg.addEventListener('focus', e => showTooltip(e, g.name + ' — ' + label2 + ': ' + count));
+      seg.addEventListener('blur', hideTooltip);
+      inner.appendChild(seg);
+    });
+    track.appendChild(inner);
+    const total = document.createElement('div');
+    total.className = 'total';
+    total.textContent = g.total;
+    row.appendChild(label); row.appendChild(track); row.appendChild(total);
+    chart.appendChild(row);
+  });
+  el.appendChild(chart);
+
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  STATUS_ORDER.forEach(s => {
+    const key = document.createElement('span'); key.className = 'key';
+    const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = STATUS_HEX[statusKey(s)];
+    const t = document.createElement('span'); t.textContent = s;
+    key.appendChild(sw); key.appendChild(t);
+    legend.appendChild(key);
+  });
+  el.appendChild(legend);
+}
+
+function countBy(rows, keyFn) {
+  const out = {};
+  rows.forEach(r => {
+    const k = keyFn(r) || '(blank)';
+    out[k] = (out[k] || 0) + 1;
+  });
+  return out;
+}
+
+function groupForChart(rows, groupFn) {
+  const byGroup = {};
+  rows.forEach(r => {
+    const g = groupFn(r);
+    if (!byGroup[g]) byGroup[g] = { name: g, counts: {}, total: 0 };
+    const s = r.status || '(blank)';
+    byGroup[g].counts[s] = (byGroup[g].counts[s] || 0) + 1;
+    byGroup[g].total += 1;
+  });
+  return Object.values(byGroup).sort((a,b) => b.total - a.total);
+}
+
+function daysUntil(date) {
+  if (!(date instanceof Date) || isNaN(date)) return null;
+  const now = new Date();
+  const ms = date.setHours(0,0,0,0) - now.setHours(0,0,0,0);
+  return Math.round(ms / 86400000);
+}
+
+function fmtDate(d) {
+  if (!(d instanceof Date) || isNaN(d)) return '';
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+
+function buildAlerts() {
+  const el = document.getElementById('alerts');
+  el.innerHTML = '';
+  const items = [];
+
+  fleetRows.forEach(r => {
+    if (r.status === 'Needs Attention') {
+      items.push({ sev: 'warning', title: (r.unit || 'Unnumbered vehicle') + ' — ' + [r.year, r.make, r.model].filter(Boolean).join(' '),
+        desc: 'Marked Needs Attention (' + r.category + ')', badge: 'Fleet' });
+    }
+    if (r.status === 'Out of Service / Retired') {
+      items.push({ sev: 'critical', title: (r.unit || 'Unnumbered vehicle') + ' — ' + [r.year, r.make, r.model].filter(Boolean).join(' '),
+        desc: 'Marked Out of Service / Retired (' + r.category + ')', badge: 'Fleet' });
+    }
+    const d = daysUntil(r.regExp);
+    if (d !== null) {
+      if (d < 0) items.push({ sev: 'critical', title: (r.unit || 'Unnumbered vehicle') + ' — registration expired',
+        desc: 'Expired ' + Math.abs(d) + ' day(s) ago (' + fmtDate(r.regExp) + ')', badge: 'Fleet' });
+      else if (d <= 30) items.push({ sev: 'warning', title: (r.unit || 'Unnumbered vehicle') + ' — registration due soon',
+        desc: 'Due in ' + d + ' day(s) (' + fmtDate(r.regExp) + ')', badge: 'Fleet' });
+    }
+  });
+
+  unitRows.forEach(r => {
+    if (r.status === 'Needs Attention') {
+      items.push({ sev: 'warning', title: r.unitId + ' — ' + r.equipDesc,
+        desc: 'Marked Needs Attention (' + r.region + ')', badge: 'DR Unit' });
+    }
+    if (r.status === 'Out of Service / Retired') {
+      items.push({ sev: 'critical', title: r.unitId + ' — ' + r.equipDesc,
+        desc: 'Marked Out of Service / Retired (' + r.region + ')', badge: 'DR Unit' });
+    }
+  });
+
+  items.sort((a,b) => (a.sev === 'critical' ? 0 : 1) - (b.sev === 'critical' ? 0 : 1));
+
+  if (items.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'empty-note';
+    note.textContent = (fleetRows.length || unitRows.length) ? 'Nothing flagged right now.' : 'Upload a workbook to see flagged items here.';
+    el.appendChild(note);
+    return;
+  }
+
+  items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'alert-item';
+    const icon = document.createElement('div');
+    icon.className = 'icon ' + it.sev;
+    icon.textContent = it.sev === 'critical' ? '✕' : '▲';
+    const mid = document.createElement('div');
+    const title = document.createElement('div'); title.className = 'title'; title.textContent = it.title;
+    const desc = document.createElement('div'); desc.className = 'desc'; desc.textContent = it.desc;
+    mid.appendChild(title); mid.appendChild(desc);
+    const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = it.badge;
+    row.appendChild(icon); row.appendChild(mid); row.appendChild(badge);
+    el.appendChild(row);
+  });
+}
+
+const TABLE_COLUMNS = [
+  { key: 'source', label: 'Workbook' },
+  { key: 'group', label: 'Category / Area' },
+  { key: 'status', label: 'Status' },
+  { key: 'id', label: 'ID' },
+  { key: 'desc', label: 'Description' },
+  { key: 'org', label: 'Org / Location' },
+  { key: 'ref', label: 'Reference' }
+];
+
+function buildUnifiedRecords() {
+  allRecords = [];
+  fleetRows.forEach(r => {
+    allRecords.push({
+      source: 'Fleet', group: r.category, status: r.status,
+      id: r.unit, desc: [r.year, r.make, r.model].filter(Boolean).join(' '),
+      org: r.parkingLoc, ref: r.vin,
+      search: [r.unit, r.make, r.model, r.vin, r.license, r.parkingLoc, r.comments].join(' ').toLowerCase()
+    });
+  });
+  unitRows.forEach(r => {
+    allRecords.push({
+      source: 'DR Unit', group: r.region, status: r.status,
+      id: r.unitId, desc: r.equipDesc || r.equipCategory,
+      org: [r.org, r.location].filter(Boolean).join(' / '), ref: r.contact,
+      search: [r.unitId, r.equipCategory, r.equipDesc, r.org, r.location, r.county, r.contact].join(' ').toLowerCase()
+    });
+  });
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('f-category');
+  const current = sel.value;
+  const groups = Array.from(new Set(allRecords.map(r => r.group))).sort();
+  sel.innerHTML = '<option value="all">All categories</option>';
+  groups.forEach(g => {
+    const opt = document.createElement('option'); opt.value = g; opt.textContent = g;
+    sel.appendChild(opt);
+  });
+  if (groups.includes(current)) sel.value = current;
+}
+
+function buildTableHead() {
+  const head = document.getElementById('table-head');
+  head.innerHTML = '';
+  TABLE_COLUMNS.forEach(c => {
+    const th = document.createElement('th'); th.textContent = c.label;
+    head.appendChild(th);
+  });
+}
+
+function renderTable() {
+  const source = document.getElementById('f-source').value;
+  const category = document.getElementById('f-category').value;
+  const status = document.getElementById('f-status').value;
+  const search = document.getElementById('f-search').value.trim().toLowerCase();
+
+  let rows = allRecords.filter(r => {
+    if (source !== 'all' && ((source === 'fleet' && r.source !== 'Fleet') || (source === 'units' && r.source !== 'DR Unit'))) return false;
+    if (category !== 'all' && r.group !== category) return false;
+    if (status !== 'all' && (r.status || '') !== status) return false;
+    if (search && !r.search.includes(search)) return false;
+    return true;
+  });
+
+  const body = document.getElementById('table-body');
+  body.innerHTML = '';
+  rows.slice(0, 500).forEach(r => {
+    const tr = document.createElement('tr');
+    TABLE_COLUMNS.forEach(c => {
+      const td = document.createElement('td');
+      if (c.key === 'status') {
+        const key = statusKey(r.status);
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + key;
+        const dot = document.createElement('span'); dot.className = 'dot';
+        const txt = document.createElement('span'); txt.textContent = r.status || 'Unset';
+        badge.appendChild(dot); badge.appendChild(txt);
+        td.appendChild(badge);
+      } else {
+        td.textContent = r[c.key] || '';
+      }
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  const countEl = document.getElementById('row-count');
+  countEl.textContent = rows.length + ' record(s)' + (rows.length > 500 ? ' — showing first 500' : '');
+}
+
+['f-source','f-category','f-status','f-search'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderTable);
+});
+
+function renderAll() {
+  // Fleet
+  const fleetCounts = countBy(fleetRows, r => r.status);
+  buildKpis('fleet-kpis', fleetRows.length, fleetCounts);
+  buildStackedChart('fleet-chart', groupForChart(fleetRows, r => r.category));
+
+  // Units
+  const unitCounts = countBy(unitRows, r => r.status);
+  buildKpis('units-kpis', unitRows.length, unitCounts);
+  buildStackedChart('units-chart', groupForChart(unitRows, r => r.region));
+
+  buildAlerts();
+  buildUnifiedRecords();
+  populateCategoryFilter();
+  buildTableHead();
+  renderTable();
+}
+
+loadEmbeddedData();
+if (EMBEDDED_DATA) {
+  renderAll();
+} else {
+  buildTableHead();
+  renderTable();
+}
+</script>
+</body>
+</html>

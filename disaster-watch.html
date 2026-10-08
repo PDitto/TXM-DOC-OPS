@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disaster Watch — Situation Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0a0e14; --panel:#111824; --panel-2:#161f2e;
+    --line:#243044; --text:#e7eef6; --muted:#8597ad; --muted-2:#5d6e85;
+    --amber:#ffb000; --extreme:#ff3b30; --severe:#ff8c42;
+    --moderate:#ffd23f; --advisory:#4fc3f7; --clear:#46d27f;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --disp:'Oswald',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(255,176,0,.05), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(79,195,247,.05), transparent 60%),
+      var(--void);
+    background-attachment:fixed; color:var(--text); font-family:var(--body);
+    line-height:1.5; min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+    background-size:42px 42px; mask-image:radial-gradient(circle at 50% 30%, #000 40%, transparent 90%);}
+
+  header{position:relative;z-index:2;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(22,31,46,.9),rgba(10,14,20,.6));overflow:hidden}
+  header::after{content:"";position:absolute;top:0;left:-30%;width:30%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,176,0,.10),transparent);
+    animation:sweep 7s linear infinite;pointer-events:none}
+  @keyframes sweep{to{left:130%}}
+  .bar{max-width:1480px;margin:0 auto;padding:18px 26px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .live-dot{width:12px;height:12px;border-radius:50%;background:var(--extreme);
+    box-shadow:0 0 0 0 rgba(255,59,48,.6);animation:pulse 2s infinite;flex:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.55)}70%{box-shadow:0 0 0 12px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+  .title{font-family:var(--disp);font-weight:700;font-size:25px;letter-spacing:.14em;
+    text-transform:uppercase;line-height:1;white-space:nowrap}
+  .title small{color:var(--amber);font-weight:500}
+  .sub{font-family:var(--mono);font-size:11px;color:var(--muted-2);letter-spacing:.14em;
+    text-transform:uppercase;margin-top:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .modepill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:2px 8px;border-radius:3px;
+    border:1px solid var(--line);color:var(--muted)}
+  .clock{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--muted);
+    text-align:right;letter-spacing:.04em;line-height:1.7}
+  .clock b{color:var(--amber);font-weight:600}
+  .refresh{font-family:var(--disp);text-transform:uppercase;letter-spacing:.13em;font-size:13px;
+    font-weight:500;color:var(--void);background:var(--amber);border:none;border-radius:3px;
+    padding:10px 18px;cursor:pointer;transition:filter .15s,transform .05s}
+  .refresh:hover{filter:brightness(1.1)} .refresh:active{transform:translateY(1px)}
+  .refresh:disabled{opacity:.55;cursor:wait}
+
+  .ticker{position:relative;z-index:2;border-bottom:1px solid var(--line);background:rgba(10,14,20,.55);overflow:hidden}
+  .ticker .row{max-width:1480px;margin:0 auto;padding:9px 26px;display:flex;gap:28px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+  .tk{display:flex;align-items:center;gap:9px;color:var(--muted)}
+  .tk b{font-size:15px;font-weight:600;color:var(--text);min-width:1.5ch;text-align:right}
+  .tk i{width:8px;height:8px;border-radius:2px;flex:none}
+
+  main{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:26px;display:grid;gap:18px;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .span2{grid-column:span 2} @media(max-width:760px){.span2{grid-column:span 1}}
+
+  .card{position:relative;background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:7px;overflow:hidden;display:flex;flex-direction:column;
+    min-height:230px;opacity:0;transform:translateY(10px);animation:rise .5s ease forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--muted-2);transition:background .3s,box-shadow .3s}
+  .card[data-sev="extreme"]::before{background:var(--extreme);box-shadow:0 0 16px rgba(255,59,48,.5)}
+  .card[data-sev="severe"]::before{background:var(--severe);box-shadow:0 0 14px rgba(255,140,66,.45)}
+  .card[data-sev="moderate"]::before{background:var(--moderate)}
+  .card[data-sev="advisory"]::before{background:var(--advisory)}
+  .card[data-sev="clear"]::before{background:var(--clear)}
+
+  .chead{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px 21px;border-bottom:1px solid var(--line)}
+  .glyph{width:30px;height:30px;flex:none;color:var(--amber);opacity:.92}
+  .glyph svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.6}
+  .ctitle{font-family:var(--disp);text-transform:uppercase;font-weight:600;letter-spacing:.07em;font-size:15.5px;line-height:1.15}
+  .csrc{font-family:var(--mono);font-size:10px;color:var(--muted-2);letter-spacing:.09em;text-transform:uppercase;margin-top:3px}
+  .count{margin-left:auto;text-align:right;flex:none}
+  .count b{font-family:var(--mono);font-size:29px;font-weight:600;line-height:1;color:var(--text);display:block}
+  .count span{font-family:var(--mono);font-size:9.5px;color:var(--muted-2);letter-spacing:.13em;text-transform:uppercase}
+
+  .cbody{padding:6px 0;flex:1;overflow:auto;max-height:308px}
+  .cbody::-webkit-scrollbar{width:8px} .cbody::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+
+  .item{padding:9px 18px 9px 21px;border-bottom:1px solid rgba(36,48,68,.5);display:flex;gap:11px;align-items:baseline}
+  .item:last-child{border-bottom:none}
+  .item .dot{width:7px;height:7px;border-radius:50%;flex:none;margin-top:6px;background:var(--muted-2)}
+  .item .main{min-width:0;flex:1}
+  .item .lbl{font-size:13.5px;color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .item .meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:.02em}
+  .item .tag{font-family:var(--mono);font-size:10px;flex:none;padding:2px 7px;border-radius:3px;
+    border:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;align-self:center;white-space:nowrap}
+  .tag.extreme{color:var(--extreme);border-color:rgba(255,59,48,.4)}
+  .tag.severe{color:var(--severe);border-color:rgba(255,140,66,.4)}
+  .tag.moderate{color:var(--moderate);border-color:rgba(255,210,63,.4)}
+  .tag.advisory{color:var(--advisory);border-color:rgba(79,195,247,.4)}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line)}
+  .stat{background:var(--panel);padding:14px 18px}
+  .stat b{font-family:var(--mono);font-size:22px;font-weight:600;display:block;line-height:1.1}
+  .stat span{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}
+  .lead{padding:11px 18px 4px;font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.55}
+
+  .cfoot{padding:9px 18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;
+    align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--muted-2);letter-spacing:.04em}
+  .cfoot a{color:var(--advisory);text-decoration:none} .cfoot a:hover{text-decoration:underline}
+  .stamp{display:flex;align-items:center;gap:6px}
+  .stamp .live{color:var(--clear)} .stamp .snap{color:var(--amber)} .stamp .err{color:var(--extreme)}
+
+  .state{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px;flex:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
+  .state .hint{font-family:var(--mono);font-size:10.5px;color:var(--muted-2);max-width:270px;line-height:1.5}
+  .spinner{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--amber);
+    border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .note{max-width:1480px;margin:0 auto 30px;padding:0 26px}
+  .note .box{background:rgba(255,176,0,.05);border:1px solid rgba(255,176,0,.2);border-radius:6px;
+    padding:15px 18px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .note b{color:var(--amber);font-family:var(--disp);letter-spacing:.06em;text-transform:uppercase;font-weight:600;font-size:12px}
+  .note a{color:var(--advisory)}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}.card{opacity:1;transform:none}}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <span class="live-dot" aria-hidden="true"></span>
+      <div>
+        <div class="title">Disaster&nbsp;Watch <small>// Situation Board</small></div>
+        <div class="sub">
+          <span id="status-line">Loading snapshot…</span>
+          <span class="modepill" id="mode-pill">SNAPSHOT</span>
+        </div>
+      </div>
+    </div>
+    <div class="clock" id="clock"></div>
+    <button class="refresh" id="refresh-btn" onclick="goLive()">⟳ Fetch Live</button>
+  </div>
+</header>
+
+<div class="ticker"><div class="row" id="ticker"></div></div>
+
+<main id="grid"></main>
+
+<div class="note">
+  <div class="box">
+    <b>How to read this board</b><br>
+    Every cell below opens pre-loaded with a <b>data snapshot captured 8 Oct 2026, ~16:15 UTC</b> — so the board is
+    never blank, even on a phone or an offline file. Press <b>Fetch Live</b> (or open this file over a local/served
+    http address) and each cell tries its agency feed directly; any cell that connects flips to <span style="color:var(--clear)">LIVE</span>,
+    and the rest stay on the <span style="color:var(--amber)">SNAP</span> capture with a working source link.
+    <br><br>
+    <b>Two cells are live-only.</b> Tornado and flood warnings change minute to minute, so they carry no snapshot and
+    show real data only once a live NWS connection succeeds. <b>Billion-dollar disasters</b> and the <i>≥ $100K tornado
+    damage</i> figure come from NOAA NCEI post-event assessments (published after the fact, not in real time), so those
+    link out. "State-declared" has no single national feed, so it groups federal FEMA declarations by state.
+  </div>
+</div>
+
+<script>
+/* ============================ SNAPSHOT (captured 2026-10-08 ~16:15 UTC) ============================ */
+const CAPTURED = "8 Oct 2026 16:15 UTC";
+const SNAP = {
+  hurricanes: [
+    {name:"Hurricane Isaias", cls:"Hurricane (Cat 1)", winds:70, pres:979, lat:"23.3N", lon:"91.2W", mv:"ENE @ 9 kt", basin:"Gulf of Mexico", sev:"extreme"},
+    {name:"Tropical Storm Rachel", cls:"Tropical Storm", winds:60, pres:985, lat:"21.8N", lon:"123.9W", mv:"WNW @ 8 kt", basin:"E Pacific", sev:"severe"},
+    {name:"Tropical Storm Simon", cls:"Tropical Storm", winds:45, pres:1000, lat:"15.4N", lon:"103.1W", mv:"W @ 7 kt", basin:"E Pacific", sev:"severe"}
+  ],
+  firesUS: [
+    {name:"Bull", loc:"Washoe, NV", acres:1529, date:"2026-10-02"},
+    {name:"San Francisco 2", loc:"Starr, TX", acres:510, date:"2026-09-30"},
+    {name:"Hatch Grade", loc:"Walla Walla, WA", acres:5000, date:"2026-09-29"},
+    {name:"3 Alpha Sierra", loc:"Broward, FL", acres:774, date:"2026-09-28"},
+    {name:"Rafter 4B", loc:"Schleicher, TX", acres:2125, date:"2026-09-26"},
+    {name:"Second Street", loc:"Benton, WA", acres:1151, date:"2026-09-25"},
+    {name:"Merit Creek", loc:"Greene, MS", acres:828, date:"2026-09-23"},
+    {name:"Round Prairie", loc:"Morehouse, LA", acres:739, date:"2026-09-20"},
+    {name:"Clark", loc:"Edwards, TX", acres:1523, date:"2026-09-16"},
+    {name:"Dry River", loc:"Sutton, TX", acres:8761, date:"2026-09-15"},
+    {name:"Davis Coulee", loc:"Big Horn, MT", acres:15470, date:"2026-09-14"},
+    {name:"Star Lake", loc:"Jefferson, TX", acres:16412, date:"2026-09-11"},
+    {name:"Needles", loc:"Oglala Lakota, SD", acres:6018, date:"2026-09-04"},
+    {name:"Rattlesnake Complex", loc:"Prairie, MT", acres:15582, date:"2026-09-04"},
+    {name:"Ross", loc:"Palo Pinto, TX", acres:80000, date:"2026-08-24"},
+    {name:"Colwash", loc:"Yakima, WA", acres:38599, date:"2026-08-22"}
+  ],
+  firesGlobal: [ /* EONET severeStorms = worldwide tropical/severe systems, past ~2 wks */
+    {name:"Super Typhoon Choi-wan", basin:"W Pacific", peak:135, date:"2026-10-05"},
+    {name:"Hurricane Rachel", basin:"E Pacific", peak:105, date:"2026-10-05"},
+    {name:"Hurricane Nolo", basin:"Central Pacific", peak:135, date:"2026-10-05"},
+    {name:"Super Typhoon Surigae", basin:"W Pacific", peak:130, date:"2026-09-30"},
+    {name:"Tropical Storm Fay", basin:"Atlantic", peak:60, date:"2026-09-29"},
+    {name:"Tropical Storm Hanna", basin:"Atlantic", peak:40, date:"2026-09-30"},
+    {name:"Tropical Storm Gonzalo", basin:"Atlantic", peak:45, date:"2026-09-26"}
+  ],
+  quakes: [
+    {mag:5.5, place:"92 km NNW of Aleneva, Alaska", t:1791311671760},
+    {mag:4.7, place:"5 km NNE of Korumburra, Australia", t:1790956899581},
+    {mag:4.2, place:"6 km WNW of Wauna, Washington", t:1790715956370},
+    {mag:6.6, place:"80 km ENE of Tadine, New Caledonia", t:1790371383309},
+    {mag:6.4, place:"49 km NNE of Kainantu, Papua New Guinea", t:1789895855624},
+    {mag:6.5, place:"177 km W of Nikolski, Alaska", t:1789654792472},
+    {mag:6.5, place:"121 km NNE of Teluknaga, Indonesia", t:1789161835815}
+  ],
+  fema: [ /* unique federal declarations, newest first, since ~Sep 1 2026 */
+    {num:4950, state:"OK", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storm and straight-line winds"},
+    {num:4946, state:"GU", type:"DR", date:"2026-10-07", inc:"Typhoon", title:"Super Typhoon Bavi"},
+    {num:4948, state:"UT", type:"DR", date:"2026-10-07", inc:"Flood", title:"Cottonwood Fire, flooding, and mudslides"},
+    {num:4953, state:"WV", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storms and flooding"},
+    {num:4949, state:"WI", type:"DR", date:"2026-10-07", inc:"Tornado", title:"Severe storms and tornadoes"},
+    {num:4951, state:"HI", type:"DR", date:"2026-10-07", inc:"Hurricane", title:"Hurricane Lala"},
+    {num:4954, state:"NM", type:"DR", date:"2026-10-07", inc:"Flood", title:"Severe storms and flooding"},
+    {num:4947, state:"NH", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storm and flooding"},
+    {num:4945, state:"OH", type:"DR", date:"2026-10-02", inc:"Flood", title:"Severe storms, winds, tornadoes, flooding, landslides"},
+    {num:5678, state:"NV", type:"FM", date:"2026-10-02", inc:"Fire", title:"Bull Fire"},
+    {num:3654, state:"HI", type:"EM", date:"2026-09-25", inc:"Tropical Storm", title:"Tropical Storm Nolo"},
+    {num:5676, state:"AR", type:"FM", date:"2026-09-15", inc:"Fire", title:"Bunker Fire"},
+    {num:5677, state:"TX", type:"FM", date:"2026-09-15", inc:"Fire", title:"Hydra Fire"},
+    {num:4937, state:"KY", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, flooding, landslides, mudslides"},
+    {num:4935, state:"TX", type:"DR", date:"2026-09-01", inc:"Flood", title:"Severe storms, winds, tornadoes, flooding"},
+    {num:4939, state:"MO", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, straight-line winds, flooding"},
+    {num:4943, state:"KS", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
+    {num:4940, state:"KS", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
+    {num:4936, state:"HI", type:"DR", date:"2026-09-01", inc:"Earthquake", title:"Earthquake"},
+    {num:4938, state:"SD", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
+    {num:4942, state:"IA", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms and flooding"},
+    {num:4944, state:"CO", type:"DR", date:"2026-09-01", inc:"Fire", title:"Wildfires, flooding, and mudslides"},
+    {num:4941, state:"SD", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, straight-line winds, flooding"}
+  ]
+};
+
+/* ============================ helpers ============================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SEVC = {extreme:'var(--extreme)',severe:'var(--severe)',moderate:'var(--moderate)',advisory:'var(--advisory)',clear:'var(--clear)'};
+let anyLive=false;
+
+async function getJSON(url,{accept}={}){
+  const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),14000);
+  try{ const r=await fetch(url,{signal:ctrl.signal,headers:accept?{'Accept':accept}:{}});
+       if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+  finally{ clearTimeout(t); }
+}
+function timeAgo(d){ if(!d) return ''; const s=(Date.now()-new Date(d).getTime())/1000; if(isNaN(s))return'';
+  if(s<3600)return Math.max(1,Math.round(s/60))+'m ago'; if(s<86400)return Math.round(s/3600)+'h ago'; return Math.round(s/86400)+'d ago'; }
+const fmtDate = d => d? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+const nowShort = () => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+const n = x => Number(x).toLocaleString('en-US');
+function isUS(lon,lat){
+  if(lat>=24.4&&lat<=49.5&&lon>=-125&&lon<=-66.8) return true;
+  if(lat>=51&&lat<=71.6&&lon>=-179.9&&lon<=-129) return true;
+  if(lat>=18.5&&lat<=22.5&&lon>=-160.6&&lon<=-154.5) return true;
+  return false;
+}
+function setSev(id,s){ $('card-'+id).dataset.sev=s||''; }
+function setCount(id,v){ $('count-'+id).querySelector('b').textContent=v; }
+function setStamp(id,kind,txt){ const m={live:'●',snap:'◐',err:'■'};
+  $('stamp-'+id).innerHTML=`<span class="${kind}">${m[kind]}</span> ${esc(txt)}`; }
+function rows(id,list){ $('body-'+id).innerHTML=list.join(''); }
+function row(color,label,meta,tag){
+  return `<div class="item"><span class="dot" style="background:${color}"></span>
+    <div class="main"><div class="lbl">${label}</div>${meta?`<div class="meta">${meta}</div>`:''}</div>
+    ${tag?`<span class="tag ${tag.cls||''}">${esc(tag.text)}</span>`:''}</div>`;
+}
+function stateMsg(id,icon,msg,hint,color){
+  $('body-'+id).innerHTML=`<div class="state"><div style="font-size:20px;color:${color||'var(--muted)'}">${icon}</div>
+    <div>${esc(msg)}</div>${hint?`<div class="hint">${esc(hint)}</div>`:''}</div>`;
+}
+
+/* ============================ renderers (shared by snap + live) ============================ */
+function renderHurricanes(list,mode){
+  const id='hurricane'; setCount(id,list.length);
+  if(!list.length){ stateMsg(id,'✓','No active tropical cyclones','',SEVC.clear); setSev(id,'clear'); }
+  else{
+    setSev(id, list.some(s=>s.sev==='extreme')?'extreme':'severe');
+    rows(id, list.map(s=>row(SEVC[s.sev],
+      esc(s.name),
+      `${s.winds} kt · ${s.pres} mb · ${esc(s.lat)} ${esc(s.lon)} · ${esc(s.mv)}${s.basin?' · '+esc(s.basin):''}`,
+      {text:/hurricane|typhoon/i.test(s.cls)?'HU':'TS',cls:s.sev})));
+  }
+  mark(id,mode);
+}
+function renderFiresUS(list,mode){
+  const id='fire-us'; setCount(id,list.length);
+  setSev(id, list.length>12?'extreme':list.length>5?'severe':'moderate');
+  rows(id, list.map(f=>row(SEVC.severe, esc(f.name)+' — '+esc(f.loc),
+    `${n(f.acres)} acres · ${fmtDate(f.date)}`, {text:(f.acres>=10000?'major':'fire'),cls:f.acres>=10000?'extreme':'severe'})));
+  mark(id,mode);
+}
+function renderFiresGlobal(list,mode){
+  const id='fire-global'; setCount(id,list.length);
+  setSev(id,'severe');
+  $('body-'+id).innerHTML =
+    `<div class="lead">Worldwide tropical &amp; severe storm systems tracked by NASA EONET (JTWC / NHC), recent. Full multi-hazard category breakdown loads in live mode.</div>`
+    + list.map(s=>row(s.peak>=100?SEVC.extreme:SEVC.severe, esc(s.name),
+        `${esc(s.basin)} · peak ${s.peak} kt · ${fmtDate(s.date)}`,
+        {text:s.peak>=130?'STY':s.peak>=64?'HU':'TS',cls:s.peak>=100?'extreme':'severe'})).join('');
+  mark(id,mode);
+}
+function renderQuakes(list,mode){
+  const id='quake'; const sorted=[...list].sort((a,b)=>b.t-a.t);
+  setCount(id,sorted.length);
+  const big=sorted.filter(x=>x.mag>=6).length;
+  setSev(id, big?'severe':'moderate');
+  rows(id, sorted.map(x=>{ const s=x.mag>=7?'extreme':x.mag>=6?'severe':'moderate';
+    return row(SEVC[s], esc(x.place||'Unknown region'), timeAgo(x.t), {text:'M'+Number(x.mag).toFixed(1),cls:s}); }));
+  mark(id,mode,`${big} ≥ M6.0 · ${sorted.length} total`);
+}
+function renderFema(list,mode){
+  const id='fema';
+  const seen=new Set(), uniq=[]; for(const r of list){ if(!seen.has(r.num)){ seen.add(r.num); uniq.push(r);} }
+  setCount(id,uniq.length); setSev(id,'severe');
+  rows(id, uniq.slice(0,14).map(r=>{ const cls=r.type==='DR'?'extreme':r.type==='EM'?'severe':'moderate';
+    return row(SEVC[cls], esc(r.title||r.inc||'Declaration'),
+      `${esc(r.state)} · ${esc(r.inc||'')} · ${fmtDate(r.date)}`, {text:r.type,cls}); }));
+  mark(id,mode,uniq.length+' declarations');
+}
+function renderStates(list,mode){
+  const id='state';
+  const per={}, counted=new Set();
+  for(const r of list){ const k=r.state+'|'+r.num; if(counted.has(k))continue; counted.add(k); per[r.state]=(per[r.state]||0)+1; }
+  const top=Object.entries(per).sort((a,b)=>b[1]-a[1]);
+  setCount(id,top.length); setSev(id,'advisory');
+  rows(id, top.map(([s,c])=>row(SEVC.advisory, esc(s)+' — '+c+' declaration'+(c!==1?'s':''),
+    'federal declarations on record', {text:'×'+c,cls:'advisory'})));
+  mark(id,mode,top.length+' states/territories');
+}
+function renderBillion(){
+  const id='dollar';
+  const ref=[['2023',28,'record high'],['2022',18,''],['2021',20,''],['2020',22,'prev. record']];
+  setCount(id,'28'); setSev(id,'severe');
+  $('body-'+id).innerHTML =
+    `<div class="lead">U.S. events each causing ≥ $1B in damage (CPI-adjusted), per confirmed NOAA NCEI assessments. 2023 set the record at 28. Current-year totals finalize after the year closes — open the source for the live count.</div>`
+    + ref.map(([y,c,note])=>row(c>=25?SEVC.extreme:c>=20?SEVC.severe:SEVC.moderate,
+        `<b style="font-family:var(--mono)">${c}</b> billion-dollar events — ${y}`, note,
+        {text:y,cls:c>=25?'extreme':c>=20?'severe':'moderate'})).join('');
+  setStamp(id,'snap','reference · NCEI');
+}
+function mark(id,mode,extra){
+  if(mode==='live'){ anyLive=true; setStamp(id,'live', extra?('LIVE · '+extra):('LIVE · '+nowShort())); }
+  else setStamp(id,'snap', extra?('SNAP · '+extra):('SNAP · '+CAPTURED.split(' ').slice(0,3).join(' ')));
+}
+
+/* ============================ live fetchers (upgrade snapshot when reachable) ============================ */
+let _eonetFires=null;
+async function liveHurricanes(){
+  let storms=[];
+  try{
+    const d=await getJSON('https://www.nhc.noaa.gov/CurrentStorms.json');
+    storms=(d.activeStorms||[]).map(s=>{ const hu=/HU|hurricane|typhoon/i.test(s.classification);
+      return {name:(s.classification?s.classification+' ':'')+s.name, cls:s.classification||'', winds:s.intensity||'?',
+        pres:s.pressure||'?', lat:s.latitude||'', lon:s.longitude||'', mv:`${s.movementDir??''}° @ ${s.movementSpeed??'?'} kt`,
+        basin:'', sev: hu?'extreme':'severe'}; });
+  }catch(e){
+    const ev=encodeURIComponent('Hurricane Warning,Hurricane Watch,Tropical Storm Warning,Tropical Storm Watch');
+    const d=await getJSON('https://api.weather.gov/alerts/active?event='+ev,{accept:'application/geo+json'});
+    storms=(d.features||[]).map(f=>({name:f.properties.event,cls:f.properties.event,winds:'',pres:'',lat:'',lon:'',
+      mv:'', basin:(f.properties.areaDesc||'').split(';')[0], sev:/hurricane/i.test(f.properties.event)?'extreme':'severe'}));
+  }
+  renderHurricanes(storms,'live');
+}
+async function eonetFires(){ if(_eonetFires) return _eonetFires;
+  _eonetFires=await getJSON('https://eonet.gsfc.nasa.gov/api/v3/events?category=wildfires&status=open&limit=120'); return _eonetFires; }
+function coord(ev){ const g=ev.geometry&&ev.geometry[ev.geometry.length-1]; if(!g||!g.coordinates)return null;
+  let c=g.coordinates; while(Array.isArray(c[0])) c=c[0]; return {lon:c[0],lat:c[1],date:g.date,
+    acres:(g.magnitudeUnit==='acres'?g.magnitudeValue:null)}; }
+async function liveFiresUS(){
+  const d=await eonetFires();
+  let f=(d.events||[]).filter(e=>!/prescribed fire|emergency stabilization/i.test(e.title))
+    .map(e=>({title:e.title.replace(/^Wildfire\s+|^Incident Complex\s+/i,''), c:coord(e)})).filter(e=>e.c&&isUS(e.c.lon,e.c.lat));
+  f.sort((a,b)=>new Date(b.c.date)-new Date(a.c.date));
+  const id='fire-us'; setCount(id,f.length); setSev(id, f.length>12?'extreme':f.length>5?'severe':'moderate');
+  rows(id, f.slice(0,16).map(e=>row(SEVC.severe, esc(e.title),
+    `${e.c.acres?n(Math.round(e.c.acres))+' acres · ':''}${e.c.lat.toFixed(1)}, ${e.c.lon.toFixed(1)} · ${timeAgo(e.c.date)}`,
+    {text:(e.c.acres>=10000?'major':'fire'),cls:e.c.acres>=10000?'extreme':'severe'})));
+  mark(id,'live',f.length+' tracked');
+}
+async function liveGlobal(){
+  const d=await getJSON('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=300');
+  const counts={}; (d.events||[]).forEach(e=>(e.categories||[]).forEach(c=>counts[c.title]=(counts[c.title]||0)+1));
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const id='fire-global'; setCount(id,(d.events||[]).length); setSev(id,(d.events||[]).length>120?'severe':'moderate');
+  $('body-'+id).innerHTML=`<div class="stat-grid">`+
+    top.slice(0,6).map(([k,v])=>`<div class="stat"><b>${v}</b><span>${esc(k)}</span></div>`).join('')+`</div>`;
+  mark(id,'live',(d.events||[]).length+' open events');
+}
+async function liveQuakes(){
+  const d=await getJSON('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson');
+  renderQuakes((d.features||[]).map(x=>({mag:x.properties.mag,place:x.properties.place,t:x.properties.time})),'live');
+}
+let _fema=null;
+async function liveFema(){
+  if(!_fema) _fema=await getJSON("https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$orderby=declarationDate%20desc&$top=300&$format=json");
+  return (_fema.DisasterDeclarationsSummaries||[]).map(r=>({num:r.disasterNumber,state:r.state,type:r.declarationType,
+    date:r.declarationDate,inc:r.incidentType,title:r.declarationTitle}));
+}
+async function liveNWS(kind){
+  const map={ tornado:'Tornado Warning,Tornado Watch', flood:'Flood Warning,Flash Flood Warning,Coastal Flood Warning' };
+  const id=kind;
+  const d=await getJSON('https://api.weather.gov/alerts/active?event='+encodeURIComponent(map[kind]),{accept:'application/geo+json'});
+  const f=(d.features||[]).map(x=>x.properties); setCount(id,f.length);
+  const warn=f.filter(p=>/warning/i.test(p.event)).length;
+  if(!f.length){ stateMsg(id,'✓',kind==='tornado'?'No active tornado warnings':'No active flood warnings','',SEVC.clear); setSev(id,'clear'); }
+  else{
+    rows(id, f.slice(0,14).map(p=>{ const w=/warning/i.test(p.event);
+      return row(w?'var(--extreme)':'var(--moderate)', esc((p.areaDesc||'').split(';')[0]),
+        esc(p.event)+' · '+timeAgo(p.sent), {text:w?'Warning':'Watch',cls:w?'extreme':'moderate'}); }));
+    setSev(id, warn?'extreme':'moderate');
+  }
+  mark(id,'live',`${warn} warning${warn!==1?'s':''} · ${f.length} active`);
+}
+
+/* ============================ build ============================ */
+const G={
+  hurricane:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"/><path d="M12 9.6c4-2 7-1 7 1.5M12 14.4c-4 2-7 1-7-1.5"/><path d="M9.6 12c-2-4-1-7 1.5-7M14.4 12c2 4 1 7-1.5 7"/></svg>`,
+  tornado:`<svg viewBox="0 0 24 24"><path d="M4 5h16M6 9h12M8 13h7M10 17h3"/><path d="M13 13l-3 8"/></svg>`,
+  flood:`<svg viewBox="0 0 24 24"><path d="M3 15c2 0 2-1.5 4.5-1.5S10 15 12 15s2.5-1.5 4.5-1.5S19 15 21 15"/><path d="M3 19c2 0 2-1.5 4.5-1.5S10 19 12 19s2.5-1.5 4.5-1.5S19 19 21 19"/><path d="M7 11l2-7 3 5 2-3 3 5"/></svg>`,
+  fire:`<svg viewBox="0 0 24 24"><path d="M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 1-3 .5 2 3 2 3-1 0-2-1-3 0-4z"/><path d="M9 19h6"/></svg>`,
+  quake:`<svg viewBox="0 0 24 24"><path d="M2 12h3l2-6 3 13 3-16 3 13 2-4h4"/></svg>`,
+  globe:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>`,
+  fema:`<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4-3.5 7-8 9-4.5-2-8-5-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  state:`<svg viewBox="0 0 24 24"><path d="M4 20V8l8-4 8 4v12"/><path d="M4 20h16M9 20v-5h6v5"/></svg>`,
+  dollar:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.2c-.5-1-1.5-1.5-2.6-1.5-1.4 0-2.4.8-2.4 2 0 2.8 5.2 1.4 5.2 4.3 0 1.3-1.1 2.2-2.7 2.2-1.2 0-2.3-.6-2.8-1.6M12 6v12"/></svg>`
+};
+const CARDS=[
+  {id:'hurricane',title:'Hurricane Forecasts & Tropical Systems',src:'NOAA National Hurricane Center',glyph:G.hurricane,unit:'active',url:'https://www.nhc.noaa.gov/',label:'NHC'},
+  {id:'tornado',title:'Tornado Activity',src:'NWS Active Alerts (live only)',glyph:G.tornado,unit:'active',url:'https://www.ncdc.noaa.gov/stormevents/',label:'NCEI Storm Events'},
+  {id:'flood',title:'Severe Flooding',src:'NWS Flood Warnings (live only)',glyph:G.flood,unit:'warnings',url:'https://water.noaa.gov/',label:'NWS Water'},
+  {id:'fire-us',title:'Wildfires & Forest Fires — U.S.',src:'NASA EONET · IRWIN incidents',glyph:G.fire,unit:'fires',url:'https://www.nifc.gov/fire-information/nfn',label:'NIFC'},
+  {id:'fire-global',title:'Global Natural Events',src:'NASA EONET · worldwide',glyph:G.globe,unit:'events',span:true,url:'https://eonet.gsfc.nasa.gov/',label:'EONET'},
+  {id:'quake',title:'Major Earthquakes — Global',src:'USGS · significant, 30 days',glyph:G.quake,unit:'events',url:'https://earthquake.usgs.gov/earthquakes/map/',label:'USGS'},
+  {id:'fema',title:'FEMA Disaster Declarations',src:'OpenFEMA · recent',glyph:G.fema,unit:'recent',span:true,url:'https://www.fema.gov/disaster/declarations',label:'FEMA'},
+  {id:'state',title:'State-Declared Disasters',src:'OpenFEMA · grouped by state',glyph:G.state,unit:'states',url:'https://www.fema.gov/disaster/declarations',label:'FEMA'},
+  {id:'dollar',title:'Billion-Dollar Disasters',src:'NOAA NCEI',glyph:G.dollar,unit:'events',url:'https://www.ncei.noaa.gov/access/billions/',label:'NCEI'}
+];
+(function build(){
+  const grid=$('grid');
+  CARDS.forEach((c,i)=>{ const el=document.createElement('section'); el.className='card'+(c.span?' span2':''); el.id='card-'+c.id;
+    el.style.animationDelay=(i*55)+'ms';
+    el.innerHTML=`<div class="chead"><div class="glyph">${c.glyph}</div>
+      <div><div class="ctitle">${c.title}</div><div class="csrc">${c.src}</div></div>
+      <div class="count" id="count-${c.id}"><b>—</b><span>${c.unit}</span></div></div>
+      <div class="cbody" id="body-${c.id}"></div>
+      <div class="cfoot"><span class="stamp" id="stamp-${c.id}">—</span>
+      <a href="${c.url}" target="_blank" rel="noopener">${c.label} ↗</a></div>`;
+    grid.appendChild(el); });
+})();
+
+function renderSnapshot(){
+  renderHurricanes(SNAP.hurricanes,'snap');
+  renderFiresUS(SNAP.firesUS,'snap');
+  renderFiresGlobal(SNAP.firesGlobal,'snap');
+  renderQuakes(SNAP.quakes,'snap');
+  renderFema(SNAP.fema,'snap');
+  renderStates(SNAP.fema,'snap');
+  renderBillion();
+  ['tornado','flood'].forEach(id=>{ setCount(id,'—');
+    stateMsg(id,'◐', (id==='tornado'?'Tornado warnings are live-only':'Flood warnings are live-only'),
+      'Press Fetch Live (or open over http) to load current NWS alerts.', 'var(--amber)');
+    setStamp(id,'snap','live only'); });
+  updateTicker();
+}
+function updateTicker(){
+  const items=[['hurricane','Tropical','var(--extreme)'],['tornado','Tornado','var(--severe)'],
+    ['flood','Flooding','var(--advisory)'],['fire-us','US Fires','var(--severe)'],
+    ['quake','Quakes','var(--moderate)'],['fema','FEMA','var(--clear)']];
+  $('ticker').innerHTML=items.map(([id,lbl,col])=>{ const v=$('count-'+id)?.querySelector('b')?.textContent||'—';
+    return `<span class="tk"><i style="background:${col}"></i>${lbl} <b>${v}</b></span>`; }).join('');
+}
+
+async function goLive(){
+  const btn=$('refresh-btn'); btn.disabled=true; anyLive=false;
+  $('status-line').textContent='Fetching live agency feeds…'; $('mode-pill').textContent='FETCHING…';
+  _eonetFires=null; _fema=null;
+  const tasks=[
+    liveHurricanes(), liveNWS('tornado'), liveNWS('flood'),
+    liveFiresUS(), liveGlobal(), liveQuakes(),
+    liveFema().then(l=>{ renderFema(l,'live'); renderStates(l,'live'); })
+  ];
+  const res=await Promise.allSettled(tasks);
+  const failed=res.filter(r=>r.status==='rejected').length;
+  updateTicker();
+  if(anyLive){
+    $('mode-pill').textContent = failed? 'LIVE (partial)':'LIVE';
+    $('mode-pill').style.color='var(--clear)'; $('mode-pill').style.borderColor='rgba(70,210,127,.4)';
+    $('status-line').innerHTML='Live sync '+nowShort()+(failed?` · ${failed} feed(s) blocked, showing snapshot`:'');
+  }else{
+    $('mode-pill').textContent='SNAPSHOT (feeds blocked)';
+    $('status-line').innerHTML='Live feeds blocked here — showing '+CAPTURED+' snapshot. Try opening over a local http server.';
+  }
+  btn.disabled=false;
+}
+
+function tickClock(){ const d=new Date();
+  $('clock').innerHTML=`<b>${d.toLocaleTimeString('en-US',{hour12:false})}</b> local<br>`+
+    `${d.toISOString().slice(11,19)} UTC · ${d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}`; }
+setInterval(tickClock,1000); tickClock();
+
+renderSnapshot();
+$('status-line').textContent='Snapshot loaded · '+CAPTURED;
+setTimeout(goLive, 400);
+setInterval(()=>{ if(anyLive) goLive(); }, 10*60*1000);
+</script>
+</body>
+</html>

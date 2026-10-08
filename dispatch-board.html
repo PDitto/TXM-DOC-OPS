@@ -1,0 +1,3117 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dispatch Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page:          #f3f4f0;
+    --surface:       #ffffff;
+    --surface-2:     #eceee8;
+    --ink:           #1a221e;
+    --ink-muted:     #5c655e;
+    --ink-faint:     #8b938a;
+    --border:        rgba(24,32,28,0.12);
+    --border-strong: rgba(24,32,28,0.20);
+
+    --accent:        #2b5c62;
+    --accent-ink:    #ffffff;
+    --accent-wash:   rgba(43,92,98,0.10);
+    --accent-wash-2: rgba(43,92,98,0.18);
+
+    --ok-fg:   #1b7a48;
+    --ok-bg:   rgba(27,122,72,0.12);
+    --future-fg: #33509e;
+    --future-bg: rgba(51,80,158,0.11);
+    --dep-fg:  #a3660c;
+    --dep-bg:  rgba(163,102,12,0.14);
+    --oos-fg:  #a1332b;
+    --oos-bg:  rgba(161,51,43,0.12);
+
+    --shadow-sm: 0 1px 2px rgba(20,26,22,0.06);
+    --shadow-md: 0 6px 20px rgba(20,26,22,0.10);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page:          #141815;
+      --surface:       #1c211d;
+      --surface-2:     #242a25;
+      --ink:           #eef1ec;
+      --ink-muted:     #a6ada4;
+      --ink-faint:     #757d74;
+      --border:        rgba(238,241,236,0.12);
+      --border-strong: rgba(238,241,236,0.22);
+
+      --accent:        #7fc2c9;
+      --accent-ink:    #0c1817;
+      --accent-wash:   rgba(127,194,201,0.13);
+      --accent-wash-2: rgba(127,194,201,0.22);
+
+      --ok-fg:   #6fd39c;
+      --ok-bg:   rgba(111,211,156,0.14);
+      --future-fg: #9db2ef;
+      --future-bg: rgba(157,178,239,0.14);
+      --dep-fg:  #f0b458;
+      --dep-bg:  rgba(240,180,88,0.16);
+      --oos-fg:  #f19086;
+      --oos-bg:  rgba(241,144,134,0.14);
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --page:          #141815;
+    --surface:       #1c211d;
+    --surface-2:     #242a25;
+    --ink:           #eef1ec;
+    --ink-muted:     #a6ada4;
+    --ink-faint:     #757d74;
+    --border:        rgba(238,241,236,0.12);
+    --border-strong: rgba(238,241,236,0.22);
+
+    --accent:        #7fc2c9;
+    --accent-ink:    #0c1817;
+    --accent-wash:   rgba(127,194,201,0.13);
+    --accent-wash-2: rgba(127,194,201,0.22);
+
+    --ok-fg:   #6fd39c;
+    --ok-bg:   rgba(111,211,156,0.14);
+    --future-fg: #9db2ef;
+    --future-bg: rgba(157,178,239,0.14);
+    --dep-fg:  #f0b458;
+    --dep-bg:  rgba(240,180,88,0.16);
+    --oos-fg:  #f19086;
+    --oos-bg:  rgba(241,144,134,0.14);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .display {
+    font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  a { color: inherit; }
+  button { font-family: inherit; }
+  ::selection { background: var(--accent-wash-2); }
+
+  .shell { display: flex; min-height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 232px;
+    flex: 0 0 232px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px 22px;
+  }
+  .brand .mark {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Semi Condensed', sans-serif; font-weight: 700; font-size: 16px;
+    flex: none;
+  }
+  .brand .name { font-family: 'Barlow Semi Condensed', sans-serif; font-weight: 700; font-size: 17px; line-height: 1.1; }
+  .brand .sub { color: var(--ink-faint); font-size: 11px; letter-spacing: .03em; text-transform: uppercase; margin-top: 2px; }
+
+  .nav { display: flex; flex-direction: column; gap: 3px; }
+  .nav button {
+    all: unset;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav button:hover { background: var(--surface-2); color: var(--ink); }
+  .nav button.active { background: var(--accent-wash); color: var(--accent); }
+  .nav button .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .55; flex: none; }
+  .nav-primary { margin-top: 8px; }
+  .nav button.cta {
+    margin-top: 14px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    justify-content: center;
+  }
+  .nav button.cta:hover { filter: brightness(1.06); }
+
+  .sidebar-foot {
+    margin-top: auto;
+    padding: 10px 8px 2px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok-fg); flex: none; }
+  .sync-dot.off { background: var(--ink-faint); }
+  .refresh-btn {
+    all: unset; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: auto; margin-bottom: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    font-size: 13px; font-weight: 600; color: var(--ink-muted);
+  }
+  .refresh-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .refresh-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .refresh-btn[disabled] { opacity: .55; cursor: default; }
+  @media (prefers-reduced-motion: no-preference) {
+    .refresh-btn.spinning svg { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; min-width: 0; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 34px 36px 80px; }
+  .page-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 28px; }
+  .page-head .today { color: var(--ink-muted); font-size: 13.5px; }
+
+  /* Category bubbles: DR / Rebuild / Other sub-groups inside each section */
+  .cat-bubbles { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+  .cat-bubble {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 15px 15px;
+    background: var(--surface-2);
+  }
+  .cat-bubble-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cat-bubble-count { font-size: 12px; color: var(--ink-faint); }
+  .cat-chip {
+    display: inline-flex; align-items: center;
+    font-family: 'Barlow Semi Condensed', sans-serif; font-weight: 700; font-size: 13.5px;
+    letter-spacing: .04em; text-transform: uppercase;
+    padding: 3px 12px; border-radius: 999px;
+  }
+  .cat-chip.cat-dr      { background: var(--accent-wash-2); color: var(--accent); }
+  .cat-chip.cat-rebuild { background: var(--dep-bg); color: var(--dep-fg); }
+  .cat-chip.cat-other   { background: var(--future-bg); color: var(--future-fg); }
+  .cat-bubble .empty-note { padding: 2px 2px 0; }
+  .cat-bubble .asset-row { background: var(--surface); }
+  .cat-bubble table.sched th { background: var(--surface-2); }
+  .cat-bubble table.sched tbody tr:hover td { background: var(--accent-wash); }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 18px; }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-head h2 { font-size: 18px; }
+  .card-head .count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .card-body { padding: 18px 20px; }
+  .card-body.pad-0 { padding: 0; }
+
+  /* ---------- Stat strip ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); font-weight: 600; }
+  .stat .value { font-family: 'Barlow Semi Condensed', sans-serif; font-size: 30px; font-weight: 700; margin-top: 3px; }
+  .stat.accent .value { color: var(--accent); }
+  .stat.dep .value { color: var(--dep-fg); }
+  .stat.future .value { color: var(--future-fg); }
+  .stat.oos .value { color: var(--oos-fg); }
+
+  /* ---------- Search box ---------- */
+  .searchbox { position: relative; }
+  .searchbox input[type="text"] {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    padding: 9px 12px 9px 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .searchbox input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .searchbox svg.icn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); pointer-events: none; }
+
+  .asset-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 340px; overflow-y: auto; }
+  .asset-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13.5px;
+  }
+  .asset-row .label { font-weight: 600; }
+  .asset-row .desc { color: var(--ink-muted); font-weight: 400; }
+  .empty-note { color: var(--ink-faint); font-size: 13px; padding: 10px 2px; }
+  .src-note { display: block; font-size: 11px; font-style: italic; color: var(--ink-faint); margin-top: 2px; }
+  .cdl-badge {
+    display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .05em;
+    padding: 2px 8px; border-radius: 5px; text-transform: uppercase; white-space: nowrap;
+  }
+  .cdl-badge.req { background: var(--oos-bg); color: var(--oos-fg); border: 1px solid var(--oos-fg); }
+  .cdl-badge.ok { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-fg); }
+  .compat { border-radius: 8px; padding: 10px 14px; margin: 2px 0 14px; font-size: 13px; line-height: 1.5; border: 1px solid; }
+  .compat b { font-weight: 800; letter-spacing: .03em; }
+  .compat.green { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-fg); }
+  .compat.yellow { background: var(--dep-bg); color: var(--dep-fg); border-color: var(--dep-fg); }
+  .compat.red { background: var(--oos-bg); color: var(--oos-fg); border-color: var(--oos-fg); }
+  .compat .sub { display: block; font-size: 12px; opacity: .9; }
+  .compat .setcap { display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .compat .setcap input { width: 110px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; }
+  .compat .setcap button { font-size: 12px; padding: 4px 10px; }
+  .remain-check {
+    display: flex; align-items: center; gap: 7px; margin-top: 7px; cursor: pointer;
+    font-size: 12.5px !important; font-weight: 500 !important; text-transform: none !important;
+    letter-spacing: 0 !important; color: var(--ink-muted) !important;
+  }
+  .remain-check input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; margin: 0; flex: none; }
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .fchip {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .01em;
+    padding: 4px 11px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: var(--ink-muted); transition: all .12s ease;
+  }
+  .fchip:hover { border-color: var(--accent); color: var(--accent); }
+  .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ---------- Status pill ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.available { color: var(--ok-fg); background: var(--ok-bg); }
+  .pill.future    { color: var(--future-fg); background: var(--future-bg); }
+  .pill.deployed  { color: var(--dep-fg); background: var(--dep-bg); }
+  .pill.oos       { color: var(--oos-fg); background: var(--oos-bg); }
+
+  /* ---------- Table ---------- */
+  .table-scroll { overflow-x: auto; }
+  table.sched { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.sched th, table.sched td { text-align: left; padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.sched th {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint);
+    font-weight: 700; position: sticky; top: 0; background: var(--surface);
+  }
+  table.sched tbody tr { cursor: pointer; }
+  table.sched tbody tr:hover td { background: var(--surface-2); }
+  table.sched td.notes { white-space: normal; max-width: 240px; color: var(--ink-muted); }
+  table.sched td .sub { display: block; color: var(--ink-faint); font-size: 11.5px; margin-top: 2px; }
+  table.sched td.deployment { font-weight: 700; }
+  .b2b-flag {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--dep-fg); font-size: 11px; font-weight: 700;
+    margin-left: 6px;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    font-size: 13.5px; font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+  }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.secondary { background: var(--surface); border-color: var(--border-strong); color: var(--ink); }
+  .btn.secondary:hover { background: var(--surface-2); }
+  .btn.ghost { color: var(--ink-muted); padding: 9px 10px; }
+  .btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+  .btn.danger { color: var(--oos-fg); }
+  .btn.danger-solid { background: var(--oos-fg); color: #ffffff; }
+  .btn.danger-solid:hover { filter: brightness(1.08); }
+  .btn.danger:hover { background: var(--oos-bg); }
+  .btn.block { width: 100%; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Forms ---------- */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); }
+  .field .hint { font-size: 11.5px; color: var(--ink-faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .field input[type="text"], .field input[type="date"], .field textarea {
+    font: inherit; font-size: 14px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink);
+    width: 100%;
+  }
+  .field input:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .field textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* ---------- Combo (searchable dropdown) ---------- */
+  .combo { position: relative; }
+  .combo-input {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    cursor: text;
+  }
+  .combo-input.open { border-color: var(--accent); }
+  .combo-input input { all: unset; flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--ink); }
+  .combo-input .chosen-pill { font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+  .combo-input .clear-btn { all: unset; cursor: pointer; color: var(--ink-faint); padding: 2px; display: flex; }
+  .combo-input .clear-btn:hover { color: var(--ink); }
+  .combo-panel {
+    position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 6px);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px;
+  }
+  .combo-opt {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13.5px;
+  }
+  .combo-opt:hover, .combo-opt.hi { background: var(--accent-wash); }
+  .combo-opt.disabled { cursor: not-allowed; opacity: .55; }
+  .combo-opt.disabled:hover { background: transparent; }
+  .combo-opt .left { min-width: 0; }
+  .combo-opt .name { font-weight: 700; }
+  .combo-opt .meta { color: var(--ink-muted); font-size: 12px; margin-top: 1px; }
+  .combo-opt .badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 2px 7px; border-radius: 999px; background: var(--accent-wash); color: var(--accent); flex: none; }
+  .combo-opt.writein { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; }
+  .combo-opt.writein .name { color: var(--accent); }
+  .combo-opt.writein .name::before { content: "+ "; }
+  .combo-empty { padding: 14px 10px; color: var(--ink-faint); font-size: 13px; }
+
+  /* ---------- Assignment block ---------- */
+  .assign-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 18px 4px;
+    margin-bottom: 16px;
+    background: var(--surface-2);
+  }
+  .assign-block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .assign-block-head .tag {
+    font-family: 'Barlow Semi Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink-muted);
+  }
+
+  /* ---------- Alerts / banners ---------- */
+  .alert {
+    border-radius: 9px;
+    padding: 13px 15px;
+    font-size: 13.5px;
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .alert .icn { flex: none; margin-top: 1px; }
+  .alert.error { background: var(--oos-bg); color: var(--oos-fg); }
+  .alert.warn { background: var(--dep-bg); color: var(--dep-fg); }
+  .alert b { font-weight: 700; }
+  .alert .body { color: var(--ink); }
+  .alert ul { margin: 6px 0 0; padding-left: 18px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10,14,12,.45);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    max-width: 520px; width: 100%;
+    box-shadow: var(--shadow-md);
+    padding: 24px;
+    max-height: 86vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 20px; display: flex; align-items: center; gap: 9px; color: var(--dep-fg); margin-bottom: 6px; }
+  .modal .lead { color: var(--ink-muted); font-size: 13.5px; margin-bottom: 14px; }
+  .modal .conflict-item {
+    border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; margin-bottom: 10px; font-size: 13.5px;
+  }
+  .modal .conflict-item .who { font-weight: 700; margin-bottom: 3px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--page);
+    padding: 11px 18px; border-radius: 9px; font-size: 13.5px; font-weight: 600;
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .form-actions { display: flex; gap: 10px; justify-content: space-between; margin-top: 22px; align-items: center; }
+  .form-actions .right { display: flex; gap: 10px; }
+
+  .placeholder-note { color: var(--ink-faint); font-size: 13px; padding: 4px 2px 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .combo-panel { animation: pop .12s ease-out; }
+    @keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =====================================================================
+   DATA LAYER
+   ===================================================================== */
+const state = {
+  db: null,
+  ready: false,
+  route: 'dashboard',
+  editingId: null,
+  log: [],          // {id, at, action, deploymentName, trailer, truck, equipment, driver, deployDate, returnDate}
+  downloads: null,  // downloads capability namespace, when this view can save files
+  assets: [],       // {id, kind, number, label, description, outOfService, approvedTrailerIds}
+  assignments: [],  // {id, deploymentId, deploymentName, trailerId, truckId, equipmentId, driverId, deployDate, returnDate, notes, createdAt}
+  toast: null,
+  mcp: null,        // mcp capability namespace, when this view can call the viewer's Google Drive connector
+  rsSync: { status: 'idle', at: null, message: null }, // last live Rolling Stock sheet sync
+};
+
+function uid(prefix) {
+  return prefix + '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
+function todayDateOnly() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function toISODate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+function fromISODate(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function addDays(iso, n) {
+  const d = fromISODate(iso);
+  d.setDate(d.getDate()+n);
+  return toISODate(d);
+}
+function fmtShort(iso) {
+  if (!iso) return '';
+  const d = fromISODate(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function fmtLong(iso) {
+  if (!iso) return '';
+  const d = fromISODate(iso);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function daysBetweenISO(aIso, bIso) {
+  return Math.round((fromISODate(bIso).getTime() - fromISODate(aIso).getTime()) / 86400000);
+}
+function overlapsISO(d1,r1,d2,r2) {
+  return fromISODate(d1).getTime() <= fromISODate(r2).getTime() && fromISODate(d2).getTime() <= fromISODate(r1).getTime();
+}
+
+/* -------------------------------------------------------------------------
+   Reference data.
+   Trailers, Trucks, and Equipment all come from the "Rolling Stock
+   Vehicles" workbook (Google Drive, "Current Rolling Stock" tab) — every
+   row with a Type of Vehicle/Truck, Trailer/Box Trailer, or Equipment and a
+   unit number. Every other reference spreadsheet is intentionally ignored.
+   Each asset carries the Status column from that sheet (Out of Service ->
+   outOfService), cross-checked against the same workbook's Dissolved
+   Vehicles ledger for anything sold/retired that Status hasn't caught up
+   to yet, and a scheduling Category — DR, Rebuild, or Other — derived from
+   its Ministry Area (Rebuild is its own category when the unit number or
+   description flags it as a rebuild trailer, e.g. "RB1"/"RB2", regardless
+   of Ministry Area). Approved-trailer pairings for equipment aren't in
+   this source, so equipment ships with none until that data exists.
+   Drivers are the Approved Drivers roster (Google Drive), non-expired
+   records only — imported as name + license class alone. DOB, license
+   number, expiration dates, and other personal record fields are
+   intentionally left out; this board only needs to identify a driver, not
+   hold their DMV file.
+   ------------------------------------------------------------------------- */
+const CATEGORIES = ['DR', 'Rebuild', 'Other'];
+
+const ROLLING_STOCK_ASSETS = [{"unit":"A104","kind":"truck","category":"Other","description":"2019 Chevrolet Sildervado 1500 LT — Truck - Rafa","oos":false,"status":"Staff","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"Sildervado 1500 LT","c":"Truck - Rafa"},{"unit":"A107","kind":"truck","category":"Other","description":"2024 GMC Acadia — SUV - Jacob Moneybrake","oos":false,"status":"Staff","hitch":"None","ew":null,"gvwr":null,"m":"Acadia","c":"SUV - Jacob Moneybrake"},{"unit":"A106","kind":"truck","category":"Other","description":"2024 Chevrolet Sildervado 1500 — Truck - Doug Hall","oos":false,"status":"Staff","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"Sildervado 1500","c":"Truck - Doug Hall"},{"unit":"A108","kind":"truck","category":"Other","description":"2025 Chevrolet Tahoe — SUV - John Travis","oos":false,"status":"Staff","hitch":"None","ew":null,"gvwr":null,"m":"Tahoe","c":"SUV - John Travis"},{"unit":"A109","kind":"truck","category":"Other","description":"2025 Chevrolet Tahoe — SUV - Mickey Lenamon","oos":false,"status":"Staff","hitch":"None","ew":null,"gvwr":null,"m":"Tahoe","c":"SUV - Mickey Lenamon"},{"unit":"A110","kind":"truck","category":"Other","description":"2026 Chevrolet Silverado — Truck - Ryan Lenamon","oos":false,"status":"Staff","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"Silverado","c":"Truck - Ryan Lenamon"},{"unit":"B206","kind":"trailer","category":"Other","description":"2000 Wells Cargo Trailer — Furniture Builders Trailer","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":22500,"m":"Trailer","c":"Furniture Builders Trailer"},{"unit":"B208","kind":"trailer","category":"Other","description":"2004 Wells Cargo WC-5 38540 — Emergency Response Trailer, 3 Axle","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":22500,"m":"WC-5 38540","c":"Emergency Response Trailer, 3 Axle"},{"unit":"B211","kind":"trailer","category":"Other","description":"2005 Wells Cargo WC-93 40801 — Church Builders","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":20000,"m":"WC-93 40801","c":"Church Builders"},{"unit":"B212","kind":"trailer","category":"Other","description":"2006 Wells Cargo WC-93 41067 — Camp Builders, Triple axle","oos":false,"status":"Available","hitch":"Gooseneck","ew":7440,"gvwr":20000,"m":"WC-93 41067","c":"Camp Builders, Triple axle"},{"unit":"B213","kind":"trailer","category":"Other","description":"2007 Wells Cargo WC-93 42274 — Cabinent Builders","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":22500,"m":"WC-93 42274","c":"Cabinent Builders"},{"unit":"B214","kind":"trailer","category":"Other","description":"2007 Wells Cargo WC-98 41898 — Camp Builders Trailer, 3 axle","oos":false,"status":"Available","hitch":"Gooseneck","ew":5580,"gvwr":22500,"m":"WC-98 41898","c":"Camp Builders Trailer, 3 axle"},{"unit":"B215","kind":"equipment","category":"Other","description":"2013 Textron EZ-GO TXTE-48V — Black 4-person","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"TXTE-48V","c":"Black 4-person"},{"unit":"B216","kind":"equipment","category":"Other","description":"2013 Textron EZ-GO — Blue w/ utility box","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"","c":"Blue w/ utility box"},{"unit":"B218","kind":"truck","category":"Other","description":"2021 Chevrolet 3500 HD — Flatbed","oos":false,"status":"Available","hitch":"Bumper / Gooseneck","ew":null,"gvwr":null,"m":"3500 HD","c":"Flatbed"},{"unit":"B219","kind":"trailer","category":"Other","description":"2022 HAULMARK PP670S2-D — Small Box Trailer for Hispanic Builders in the Rio Grande Valley","oos":false,"status":"Available","hitch":"2\"","ew":null,"gvwr":2990,"m":"PP670S2-D","c":"Small Box Trailer for Hispanic Builders in the Rio Grande Valley"},{"unit":"B220","kind":"trailer","category":"DR","description":"1993 Lufkin TFV-TP ST — 53' Supply Semi Trailer (perm assignment Furniture Builders, Latham Springs)","oos":false,"status":"Available","hitch":"2\" Kingpin","ew":null,"gvwr":65000,"m":"TFV-TP ST","c":"53' Supply Semi Trailer (perm assignment Furniture Builders, Latham Springs)"},{"unit":"E301","kind":"equipment","category":"Other","description":"2006 Toyota 7FDU25 — Diesel Fork Lift, Side shifter","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"7FDU25","c":"Diesel Fork Lift, Side shifter"},{"unit":"E303","kind":"equipment","category":"Other","description":"Toyota 8FGCU18 — LP Fork Lift, U17558, Side shifter","oos":false,"status":"Available","hitch":"N/A","ew":6910,"gvwr":null,"m":"8FGCU18","c":"LP Fork Lift, U17558, Side shifter"},{"unit":"R402","kind":"trailer","category":"Other","description":"1998 CIRC / Top Hat Trailer — Missions Mania Trailer, Tandem","oos":false,"status":"Available","hitch":"Bumper","ew":3300,"gvwr":null,"m":"Trailer","c":"Missions Mania Trailer, Tandem"},{"unit":"R403","kind":"trailer","category":"Other","description":"2003 Buffalo Trailer — 10 Hauler / Canoe Trailer (Latham Springs)","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":2000,"m":"Trailer","c":"10 Hauler / Canoe Trailer (Latham Springs)"},{"unit":"R404","kind":"trailer","category":"Other","description":"2003 Buffalo Trailer — 10 Hauler / Canoe Trailer (Hemptead)","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":2000,"m":"Trailer","c":"10 Hauler / Canoe Trailer (Hemptead)"},{"unit":"R405","kind":"trailer","category":"Other","description":"2003 Pace American CS58SA — Single axle, Small RA Trailer","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":583,"gvwr":2500,"m":"CS58SA","c":"Single axle, Small RA Trailer"},{"unit":"R406","kind":"trailer","category":"Other","description":"2011 W-W Apache — State Race Trailer","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":10000,"gvwr":16200,"m":"Apache","c":"State Race Trailer"},{"unit":"T501","kind":"trailer","category":"Other","description":"2015 BigTex Trailer — Drop-down back door","oos":false,"status":"Available","hitch":"Bumper","ew":null,"gvwr":null,"m":"Trailer","c":"Drop-down back door"},{"unit":"T502","kind":"truck","category":"Other","description":"2019 Ford F-250 — Jacob Moneybrake Vehicle","oos":false,"status":"Staff","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-250","c":"Jacob Moneybrake Vehicle"},{"unit":"T503","kind":"trailer","category":"Other","description":"2020 Lone Star Trailer — Drilling Rig","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Drilling Rig"},{"unit":"T504","kind":"truck","category":"Other","description":"2022 Chevrolet 2500 — Rand Truck","oos":false,"status":"Staff","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"2500","c":"Rand Truck"},{"unit":"T505","kind":"trailer","category":"Other","description":"2015 SGAC Trailer — Drop-down back door single axle","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":800,"gvwr":2900,"m":"Trailer","c":"Drop-down back door single axle"},{"unit":"T-506","kind":"trailer","category":"Other","description":"2019 Continental Cargo 714.0 — Drop-down back door","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":2100,"gvwr":7000,"m":"714.0","c":"Drop-down back door"},{"unit":"T-507","kind":"trailer","category":"Other","description":"2024 Wiley Water Tank — Cone Bottom Trailer","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Water Tank","c":"Cone Bottom Trailer"},{"unit":"D602","kind":"trailer","category":"DR","description":"1994 Wells Cargo Trailer — Work horse / ladder rack trailer, swing back door","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":2290,"gvwr":7710,"m":"Trailer","c":"Work horse / ladder rack trailer, swing back door"},{"unit":"D603","kind":"trailer","category":"DR","description":"1997 CMTR Trailer — Luggage Trailer","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":1500,"gvwr":2600,"m":"Trailer","c":"Luggage Trailer"},{"unit":"D605","kind":"trailer","category":"DR","description":"1998 Hallmark Trailer — Mudout Trailer (Day Volunteer)","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"Trailer","c":"Mudout Trailer (Day Volunteer)"},{"unit":"D606","kind":"trailer","category":"DR","description":"2001 Wells Cargo WC-5 33158 — Child Care","oos":false,"status":"Available","hitch":"Bumper","ew":null,"gvwr":null,"m":"WC-5 33158","c":"Child Care"},{"unit":"D607 K2S","kind":"trailer","category":"DR","description":"2001 Wells Cargo Trailer — Supply Trailer / Feeding Support","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Supply Trailer / Feeding Support"},{"unit":"D608","kind":"truck","category":"DR","description":"2003 International Vehicle — Eagle Tractor Truck","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"Vehicle","c":"Eagle Tractor Truck"},{"unit":"D609","kind":"trailer","category":"DR","description":"2006 Genera Generator — 200 kW Green Generator Trailer","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Generator","c":"200 kW Green Generator Trailer"},{"unit":"D610","kind":"trailer","category":"DR","description":"2006 Nash Travel Trailer — Rand Has Trailer","oos":false,"status":"Available","hitch":"Bumper","ew":4425,"gvwr":11575,"m":"Travel Trailer","c":"Rand Has Trailer"},{"unit":"D611","kind":"trailer","category":"DR","description":"2007 Great Dane Trailer — 53' Semi trailer - Feeding Unit","oos":false,"status":"Available","hitch":"2\" Kingpin","ew":null,"gvwr":null,"m":"Trailer","c":"53' Semi trailer - Feeding Unit"},{"unit":"D612","kind":"trailer","category":"DR","description":"2007 Great Dane Trailer — 53' Supply Semi Trailer","oos":false,"status":"Available","hitch":"2\" Kingpin","ew":12200,"gvwr":null,"m":"Trailer","c":"53' Supply Semi Trailer"},{"unit":"D614","kind":"trailer","category":"DR","description":"2007 Wells Cargo WC-98 41904 — Empty/Haul/Event Trailer","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"WC-98 41904","c":"Empty/Haul/Event Trailer"},{"unit":"D615","kind":"truck","category":"DR","description":"2012 Ford E-350 — WMU Van","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"E-350","c":"WMU Van"},{"unit":"D616","kind":"trailer","category":"DR","description":"2013 BigTex Tilt Trailer — Lowboy for forklift transport, tilt trailer","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":3450,"gvwr":10500,"m":"Tilt Trailer","c":"Lowboy for forklift transport, tilt trailer"},{"unit":"D617","kind":"truck","category":"DR","description":"2014 Ford F-450 — Flatbed","oos":true,"status":"Out of Service","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-450","c":"Flatbed"},{"unit":"D619","kind":"equipment","category":"DR","description":"2015 Kawasaki Mule — 4 Person - Pro FXT LE","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":2000,"m":"Mule","c":"4 Person - Pro FXT LE"},{"unit":"D620","kind":"truck","category":"DR","description":"2017 Ford F-250 — Pickup 4x4","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-250","c":"Pickup 4x4"},{"unit":"D622","kind":"truck","category":"DR","description":"2017 Ford F-350 — Long Box, Single Wheel, base model","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-350","c":"Long Box, Single Wheel, base model"},{"unit":"D623 RB 1","kind":"trailer","category":"Rebuild","description":"2017 Wells Cargo Trailer — Rebuild 2  - RB1","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Rebuild 2  - RB1"},{"unit":"D624 RB 2","kind":"trailer","category":"Rebuild","description":"2017 Wells Cargo Trailer — Rebuild 1   - RB2","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Rebuild 1   - RB2"},{"unit":"D626","kind":"trailer","category":"DR","description":"2018 Big Tex Trailer — Flat Bed, lowboy","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Flat Bed, lowboy"},{"unit":"D627","kind":"trailer","category":"DR","description":"2018 BigTex Trailer — Flat Bed, lowboy","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Flat Bed, lowboy"},{"unit":"D628","kind":"trailer","category":"DR","description":"2018 Freedom Trailer — Rapid Response Unit (Feeding)","oos":false,"status":"Available","hitch":"Bumper","ew":null,"gvwr":null,"m":"Trailer","c":"Rapid Response Unit (Feeding)"},{"unit":"D629","kind":"trailer","category":"DR","description":"2018 Trip Trailer — Cooler/Refrigerated Trailer","oos":false,"status":"Available","hitch":"Bumper","ew":null,"gvwr":null,"m":"Trailer","c":"Cooler/Refrigerated Trailer"},{"unit":"D631 K1K","kind":"trailer","category":"DR","description":"2019 Cargo Craft GN-85362 — State Kitchen #1","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":14000,"m":"GN-85362","c":"State Kitchen #1"},{"unit":"D632 K1S","kind":"trailer","category":"DR","description":"2019 Cargo Craft GN-85362 — State Kitchen Support Trailer #1","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":14000,"m":"GN-85362","c":"State Kitchen Support Trailer #1"},{"unit":"D633 K2K","kind":"trailer","category":"DR","description":"2019 Cargo Craft GN-85362 — State Kitchen #2","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":14000,"m":"GN-85362","c":"State Kitchen #2"},{"unit":"D634","kind":"truck","category":"DR","description":"2019 Ford F-350 — Dually","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-350","c":"Dually"},{"unit":"D636","kind":"truck","category":"DR","description":"2019 Ford F-350 — Single wheel, Long Box, XLT, 2nd 350 bought in 2019","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"F-350","c":"Single wheel, Long Box, XLT, 2nd 350 bought in 2019"},{"unit":"D637","kind":"trailer","category":"DR","description":"2019 Impression MPF34MID — DR RV; Serial Number: MPG600662","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"MPF34MID","c":"DR RV; Serial Number: MPG600662"},{"unit":"D638","kind":"trailer","category":"DR","description":"2019 Orchard Hill Box (Shower) — Shower Laundry Trailer 005 (4S,2W,3D)","oos":false,"status":"Deployed","hitch":"Bumper","ew":null,"gvwr":3500,"m":"Box (Shower)","c":"Shower Laundry Trailer 005 (4S,2W,3D)"},{"unit":"D639","kind":"trailer","category":"DR","description":"2019 Texoma 16' Car Hauler — 50 kW  Generator and Trailer (Green)","oos":false,"status":"Available","hitch":"Bumper  2 5/16\"","ew":null,"gvwr":null,"m":"16' Car Hauler","c":"50 kW  Generator and Trailer (Green)"},{"unit":"D644","kind":"truck","category":"DR","description":"2020 Chevrolet 2500 HD","oos":false,"status":"Available","hitch":"Bumper / Gooseneck","ew":null,"gvwr":null,"m":"2500 HD","c":""},{"unit":"D645","kind":"truck","category":"Other","description":"2019 Mercedes Sprinter — Box Truck","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"Sprinter","c":"Box Truck"},{"unit":"D650","kind":"trailer","category":"DR","description":"2020 Performax Command Trailer — Incident Command Trailer","oos":true,"status":"Out of Service","hitch":"Goose Neck","ew":null,"gvwr":null,"m":"Command Trailer","c":"Incident Command Trailer"},{"unit":"D651","kind":"trailer","category":"DR","description":"2000 Wells Cargo Trailer — Outdoor Ministry trailer (small)","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Trailer","c":"Outdoor Ministry trailer (small)"},{"unit":"D652","kind":"trailer","category":"DR","description":"2020 Orchard Hill Shower/Laundry — Shower Laundry Trailer 006 (4S,2W,3D)","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Shower/Laundry","c":"Shower Laundry Trailer 006 (4S,2W,3D)"},{"unit":"D653","kind":"trailer","category":"DR","description":"2021 Pace American Feeding Trailer — Church Kitchen Support Trailer","oos":false,"status":"Available","hitch":"Bumper 2 5/16","ew":null,"gvwr":null,"m":"Feeding Trailer","c":"Church Kitchen Support Trailer"},{"unit":"D654","kind":"trailer","category":"DR","description":"US Traffic Corp Traffic Display Solutions — Solar Traffic Display Trailer","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":null,"m":"Traffic Display Solutions","c":"Solar Traffic Display Trailer"},{"unit":"D655","kind":"trailer","category":"DR","description":"2011 Expedition Cargo Craft Dual Axle Trailer — Electrical Support Trailer","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":null,"m":"Dual Axle Trailer","c":"Electrical Support Trailer"},{"unit":"D656","kind":"trailer","category":"DR","description":"1993 HiPoint Dual Axle Trailer — Electrionics Support Trailer #1","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":5000,"m":"Dual Axle Trailer","c":"Electrionics Support Trailer #1"},{"unit":"D657","kind":"trailer","category":"DR","description":"2022 Big Tex Dual Axle Flatbed — 230 KW Generator","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":2830,"gvwr":14000,"m":"Dual Axle Flatbed","c":"230 KW Generator"},{"unit":"D658","kind":"trailer","category":"DR","description":"2006 Outpost RV","oos":false,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":null,"m":"RV","c":""},{"unit":"D-659","kind":"truck","category":"DR","description":"2020 Ford Food Truck","oos":false,"status":"Available","hitch":"N/A","ew":null,"gvwr":null,"m":"Food Truck","c":"Food Truck"},{"unit":"D-660","kind":"trailer","category":"DR","description":"1997 Progessive Laundry — Laundry Trailer  040 (6 washers & 6 Dryers)","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Laundry","c":"Laundry Trailer  040 (6 washers & 6 Dryers)"},{"unit":"D-661","kind":"trailer","category":"Other","description":"2018 Look — Gaming Trailer","oos":false,"status":"Available","hitch":"Bumper","ew":3320,"gvwr":6640,"m":"","c":"Gaming Trailer"},{"unit":"D-662","kind":"truck","category":"DR","description":"2022 Chevrolet 4500.0 — Flatbed","oos":false,"status":"Available","hitch":"Receiver Hitch & GN","ew":null,"gvwr":16500,"m":"4500.0","c":"Flatbed"},{"unit":"D-663","kind":"trailer","category":"DR","description":"2023 TX Pride Trailers GT717816KGN — Tilt Trailer","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":16000,"m":"GT717816KGN","c":"Tilt Trailer"},{"unit":"D-667","kind":"trailer","category":"DR","description":"2023 LDJ Manf. Inc. MTT690-G3 — 6 - Cell Diesel Fuel Trailer","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":4600,"gvwr":12000,"m":"MTT690-G3","c":"6 - Cell Diesel Fuel Trailer"},{"unit":"D-668","kind":"trailer","category":"Other","description":"2003 Mobile Suites — Travel Trailer (Mary & Larry)","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"","c":"Travel Trailer (Mary & Larry)"},{"unit":"D-669","kind":"equipment","category":"DR","description":"2024 Man Lift JGL","oos":true,"status":"Available","hitch":"Bumper 2\"","ew":null,"gvwr":null,"m":"JGL","c":""},{"unit":"D-670","kind":"trailer","category":"DR","description":"2012 Utility VS2RA — 53' Refrigerated Trailer","oos":false,"status":"Available","hitch":"2\" Kingpin","ew":null,"gvwr":null,"m":"VS2RA","c":"53' Refrigerated Trailer"},{"unit":"D-671","kind":"trailer","category":"DR","description":"2024 Sundowner JA1099 — Bunkhouse Trailer","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"JA1099","c":"Bunkhouse Trailer"},{"unit":"D-672","kind":"equipment","category":"DR","description":"2023 Catapillar TH255C RC — Tele-Handler Forklift","oos":false,"status":"Available","hitch":"","ew":null,"gvwr":null,"m":"TH255C RC","c":"Tele-Handler Forklift"},{"unit":"D-673","kind":"trailer","category":"DR","description":"2012 Comforts of Home Srvs. Inc. 32' 9st Restroom — Shower Trailer 008","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"32' 9st Restroom","c":"Shower Trailer 008"},{"unit":"D-674","kind":"trailer","category":"DR","description":"2006 Contract Manufacturer, Inc. LLC (CM Trailers) Trailer — Quick Response Cooking Trailer","oos":false,"status":"Available","hitch":"Gooseneck","ew":6084,"gvwr":12168,"m":"Trailer","c":"Quick Response Cooking Trailer"},{"unit":"D-675","kind":"trailer","category":"DR","description":"2012 Comforts of Home Srvs. Inc. 32' 9st Restroom — Shower Trailer 009","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"32' 9st Restroom","c":"Shower Trailer 009"},{"unit":"D-676","kind":"truck","category":"DR","description":"2024 Chevrolet Silverado 2500 — Truck - Phillip Ditto","oos":false,"status":"Staff","hitch":"Reciver Hitch & GN","ew":null,"gvwr":null,"m":"Silverado 2500","c":"Truck - Phillip Ditto"},{"unit":"D-677","kind":"trailer","category":"DR","description":"2007 Valu UT — Electrionics Support Trailer #2 (former Denton County Unit)","oos":false,"status":"Available","hitch":"","ew":null,"gvwr":null,"m":"UT","c":"Electrionics Support Trailer #2 (former Denton County Unit)"},{"unit":"D-679","kind":"truck","category":"DR","description":"2025 Chevrolet Silverado 3500 — One-Ton Dually","oos":false,"status":"Available","hitch":"Receiver Hitch & GN","ew":null,"gvwr":null,"m":"Silverado 3500","c":"One-Ton Dually"},{"unit":"D-680","kind":"truck","category":"DR","description":"2024 Chevrolet 5500.0 — Flatbed","oos":false,"status":"Available","hitch":"Receiver Hitch & GN","ew":null,"gvwr":null,"m":"5500.0","c":"Flatbed"},{"unit":"D-681","kind":"truck","category":"Other","description":"2004 Motor Home Itaska","oos":false,"status":"Available","hitch":"Receiver Hitch","ew":null,"gvwr":null,"m":"Itaska","c":""},{"unit":"D-682","kind":"trailer","category":"DR","description":"1986 Ingersol Rand G120 — 120 kW Generator","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"G120","c":"120 kW Generator"},{"unit":"D-683","kind":"trailer","category":"DR","description":"2007 Wells Cargo AWG3625T (36') — Mass Kitchen Supply Trailer (LIndale)","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":14700,"m":"AWG3625T (36')","c":"Mass Kitchen Supply Trailer (LIndale)"},{"unit":"D-684","kind":"trailer","category":"DR","description":"2007 Wells Cargo AWG3225T (32') — Mass Kitchen Trailer (Lindale)","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":14700,"m":"AWG3225T (32')","c":"Mass Kitchen Trailer (Lindale)"},{"unit":"D-685","kind":"trailer","category":"DR","description":"2005 Wells Cargo Utility Box — Unassigned (received in trade from CTCDR)","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Utility Box","c":"Unassigned (received in trade from CTCDR)"},{"unit":"D-687","kind":"trailer","category":"DR","description":"2003 CM Trailer — Trailer from Shorecrest Baptist Church - Lubbock","oos":false,"status":"Available","hitch":"Gooseneck","ew":null,"gvwr":null,"m":"Trailer","c":"Trailer from Shorecrest Baptist Church - Lubbock"},{"unit":"D-688","kind":"trailer","category":"DR","description":"2005 Pace Chainsaw Trailer — Trailer from Plympouth Park Baptist Church - Irving","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":null,"gvwr":null,"m":"Chainsaw Trailer","c":"Trailer from Plympouth Park Baptist Church - Irving"},{"unit":"D-689","kind":"trailer","category":"DR","description":"2022 Carg Trailer — Trailer from Jeffrey Baird","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3500,"gvwr":10400,"m":"Trailer","c":"Trailer from Jeffrey Baird"},{"unit":"D-690","kind":"trailer","category":"DR","description":"2024 Hawn Shower & Laundry — Shower Laundry 007 (4S,4W,5D)","oos":false,"status":"Available","hitch":"Gooseneck","ew":12000,"gvwr":14000,"m":"Shower & Laundry","c":"Shower Laundry 007 (4S,4W,5D)"},{"unit":"D-691","kind":"trailer","category":"DR","description":"2006 Pace — From Morton Baptist Church","oos":false,"status":"Available","hitch":"Gooseneck","ew":5900,"gvwr":11900,"m":"","c":"From Morton Baptist Church"},{"unit":"D-692","kind":"trailer","category":"DR","description":"2008 Park Generator — From Morton Baptist Church","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":2000,"gvwr":12000,"m":"Generator","c":"From Morton Baptist Church"},{"unit":"D-693","kind":"trailer","category":"DR","description":"1999 Carg Mobil Kitchen — From Morton Baptist Church","oos":false,"status":"Available","hitch":"Gooseneck","ew":4700,"gvwr":6300,"m":"Mobil Kitchen","c":"From Morton Baptist Church"},{"unit":"D-694","kind":"trailer","category":"DR","description":"2006 Pace Pantry/Supply — From Morton Baptist Church","oos":false,"status":"Available","hitch":"Gooseneck","ew":5900,"gvwr":9900,"m":"Pantry/Supply","c":"From Morton Baptist Church"},{"unit":"D-695","kind":"trailer","category":"DR","description":"2003 Road Shower Trailer — From Medina River Baptist Assoc.","oos":false,"status":"Deployed","hitch":"","ew":6000,"gvwr":14000,"m":"Shower Trailer","c":"From Medina River Baptist Assoc."},{"unit":"D-696","kind":"truck","category":"DR","description":"2013 International Van model 430 — Electrical box truck","oos":false,"status":"Available","hitch":"N/A","ew":17400,"gvwr":21600,"m":"Van model 430","c":"Electrical box truck"},{"unit":"D-697","kind":"trailer","category":"Rebuild","description":"2011 VMAP Rebuild Trailer — From St Andrew United Methodist","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3430,"gvwr":10000,"m":"Rebuild Trailer","c":"From St Andrew United Methodist"},{"unit":"D-698","kind":"trailer","category":"DR","description":"1992 HDME Shower Trailer — From El Paso Baptist Assocation","oos":false,"status":"Available","hitch":"Gooseneck","ew":7400,"gvwr":12000,"m":"Shower Trailer","c":"From El Paso Baptist Assocation"},{"unit":"D-699","kind":"trailer","category":"DR","description":"2026 W-W TRAILER CC1","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3300,"gvwr":6700,"m":"CC1","c":""},{"unit":"D-700","kind":"trailer","category":"DR","description":"2026 Sundowner GM","oos":false,"status":"Available","hitch":"Gooseneck","ew":11780,"gvwr":20000,"m":"GM","c":""},{"unit":"D-701","kind":"truck","category":"DR","description":"2026 Chevrolet Silverado 3500 HD","oos":false,"status":"Available","hitch":"Receiver Hitch & GN","ew":8100,"gvwr":12200,"m":"Silverado 3500 HD","c":""},{"unit":"D-702","kind":"truck","category":"DR","description":"2026 Chevrolet Silverado 3500 HD","oos":false,"status":"Available","hitch":"Receiver Hitch & GN","ew":8100,"gvwr":12200,"m":"Silverado 3500 HD","c":""},{"unit":"D-703","kind":"trailer","category":"DR","description":"2026 W-W TRAILER CC16X8","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3300,"gvwr":6700,"m":"CC16X8","c":""},{"unit":"D-704","kind":"trailer","category":"DR","description":"2026 W-W TRAILER CC16X8","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3300,"gvwr":6700,"m":"CC16X8","c":""},{"unit":"D-705","kind":"trailer","category":"DR","description":"2003 Wells Cargo — From Crestview Baptist Church - Georgetown","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":1830,"gvwr":2990,"m":"","c":"From Crestview Baptist Church - Georgetown"},{"unit":"D-706","kind":"trailer","category":"DR","description":"2002 Wells Cargo — From Tri River Area- Gatesville","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":1800,"gvwr":5800,"m":"","c":"From Tri River Area- Gatesville"},{"unit":"D-707","kind":"trailer","category":"DR","description":"2026 Texas Pride GT8 — Skid Steer Trailer","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":4760,"gvwr":16000,"m":"GT8","c":"Skid Steer Trailer"},{"unit":"D-708","kind":"trailer","category":"DR","description":"2015 Wells Cargo EW2024-V — From Somervill County Food Bank","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":3200,"gvwr":10000,"m":"EW2024-V","c":"From Somervill County Food Bank"},{"unit":"D-709","kind":"trailer","category":"DR","description":"2025 Forest River 7X — Chainsaw Trailer","oos":false,"status":"Available","hitch":"Bumper 2 5/16\"","ew":1700,"gvwr":7000,"m":"7X","c":"Chainsaw Trailer"},{"unit":"R401","kind":"trailer","category":"Other","description":"1992 Well Cargo Trailer — 12' OLd Builders trailer used as storage for RA's not","oos":false,"status":"Available","hitch":"Bumper 2 5/16","ew":1300,"gvwr":8700,"m":"Trailer","c":"12' OLd Builders trailer used as storage for RA's not"}];
+
+const APPROVED_DRIVERS = [
+  {"first":"Ronald Lloyd","last":"Abney","cls":""},{"first":"Steven Richard","last":"Andersen","cls":"CM"},{"first":"Kirk Lane","last":"Andrews","cls":"AM"},{"first":"Benjamin Edward","last":"Baker","cls":""},{"first":"Gregory Albert","last":"Bancewicz","cls":"C"},{"first":"RL","last":"Barnard","cls":"A"},{"first":"Margaret (Elaine)","last":"Barnard","cls":"C"},{"first":"James Dale","last":"Bass","cls":"CM"},{"first":"William Kenneth","last":"Beardslee","cls":""},{"first":"Stanley Michael","last":"Beattie","cls":"C"},{"first":"Michael Wayne","last":"Bradshaw","cls":"C"},{"first":"Briana Yvonne","last":"Branstaff","cls":""},{"first":"Mervyn Lucius (Luke)","last":"Bridges","cls":"B"},{"first":"Nathan Charles","last":"Buchanan","cls":""},{"first":"Justin Lee","last":"Bunting","cls":"A"},{"first":"James Edward","last":"Cassidy","cls":"CM"},{"first":"Gregory Vaughn","last":"Carr","cls":"CM"},{"first":"Jalan C","last":"Clark","cls":"CM"},{"first":"Philip Frank","last":"Clasen","cls":"C"},{"first":"Patrick Alan","last":"Cleaver","cls":"C"},{"first":"Ian Donald","last":"Crane","cls":"CM"},{"first":"Roger Wallace","last":"Crouch","cls":"C"},{"first":"Gregory William","last":"Crow","cls":"A"},{"first":"Michael Bruce","last":"Crow","cls":"C"},{"first":"Joe","last":"Crutchfield","cls":"C"},{"first":"Rodric Ernest","last":"Cummins","cls":"C"},{"first":"Philip","last":"Davenport","cls":"C"},{"first":"Earnest M","last":"Davis","cls":"CM"},{"first":"Billy Edward","last":"Davis","cls":"C"},{"first":"James Phillip","last":"Dickson","cls":"C"},{"first":"Nanine Marie","last":"Dickson","cls":"C"},{"first":"Rhonda Jean","last":"Dodson","cls":"C"},{"first":"Phil Lynn","last":"Elery","cls":"C"},{"first":"Kimberly Perkins","last":"Elliott","cls":"C"},{"first":"Malcom Gale","last":"Elliott","cls":"C"},{"first":"David Roy","last":"Frost","cls":"B"},{"first":"Tracy Scott","last":"Gandee","cls":"CM"},{"first":"Ray Henry","last":"Gann","cls":"CM"},{"first":"Michael Carl","last":"Gillert","cls":""},{"first":"Daniel Neal","last":"Gose Jr","cls":"C"},{"first":"Jerry Michael","last":"Hall","cls":"CM"},{"first":"John Wayne","last":"Harris","cls":"A"},{"first":"Bruce Allan","last":"Hill","cls":""},{"first":"Joseph Martin","last":"Hovan","cls":"A"},{"first":"James Gordon","last":"Inglis","cls":"R"},{"first":"Laura Sue","last":"King","cls":"C"},{"first":"Steven Wayne","last":"King","cls":"CM"},{"first":"Javier Alberton Sanchez","last":"Jacobo","cls":"A"},{"first":"Randall","last":"Jenkins","cls":"C"},{"first":"James Dwain","last":"Johnson","cls":"B"},{"first":"Arthur Theron Jr","last":"Jones","cls":"C"},{"first":"Kenneth Dale","last":"Landers","cls":"AM"},{"first":"Daniel Lee","last":"Lance","cls":"A"},{"first":"James Wesley","last":"Lawton","cls":"CM"},{"first":"Savion Terrel","last":"Lee","cls":"C"},{"first":"Mark Vandeventer","last":"Leitch","cls":"A"},{"first":"Phelecia Dianne","last":"Leitch","cls":"C"},{"first":"Mickey Bart","last":"Lenamon","cls":"C"},{"first":"Ryan Joseph","last":"Lenamon","cls":"C"},{"first":"Terry Glen","last":"Lewis","cls":"C"},{"first":"Sung Rin","last":"Lim","cls":"C"},{"first":"John William","last":"Littrell","cls":"A"},{"first":"Donald Mark","last":"Livingston","cls":"C"},{"first":"John William","last":"Loewen","cls":"C"},{"first":"Denise Wayne","last":"Lofton","cls":""},{"first":"Dennis Joseph","last":"Mahoney","cls":"C"},{"first":"Ryan Joseph","last":"Mahoney","cls":"D"},{"first":"Jon Parr","last":"Majors","cls":"C"},{"first":"Gaylan Roy","last":"Mathis","cls":"CM"},{"first":"Karen Lynette","last":"Mathis","cls":"C"},{"first":"Ricki Russell","last":"Meeks","cls":"CM"},{"first":"Lewis William","last":"Minx","cls":"C"},{"first":"Jacob Daniel","last":"Moneybrake","cls":""},{"first":"James Douglas (Doug)","last":"Mullins","cls":"AM"},{"first":"Rickie Edwin","last":"Munden","cls":"A"},{"first":"Rafael","last":"Munoz","cls":"C"},{"first":"Salvador Hervey","last":"Munoz","cls":"C"},{"first":"Curtis Donald","last":"Neal","cls":""},{"first":"Angela Nicole","last":"Osborne","cls":"C"},{"first":"Alex","last":"Pinales","cls":"C"},{"first":"Alex","last":"Pinales Jr.","cls":"C"},{"first":"Christina","last":"Porter","cls":"C"},{"first":"Lowell Russell Jr.","last":"Powell","cls":"C"},{"first":"Tammey Roach","last":"Powell","cls":"C"},{"first":"Richard Thomas","last":"Pruitt","cls":"C"},{"first":"Jason Wayne","last":"Ramsey","cls":"A"},{"first":"Ricky Earl","last":"Ratley","cls":"C"},{"first":"William","last":"Reid","cls":"B"},{"first":"Gregory Mason","last":"Renfro","cls":"C"},{"first":"Keith Alan","last":"Ringler","cls":"C"},{"first":"JOHN ANTON RISS","last":"Riss","cls":"C"},{"first":"Rebecca Ann","last":"Robbins","cls":"C"},{"first":"Rupert Ray","last":"Robbins","cls":"CM"},{"first":"Benny Ray","last":"Robertson","cls":"A"},{"first":"Angelina","last":"Rodriguez","cls":"C"},{"first":"Rolando","last":"Rodriguez","cls":"C"},{"first":"David Eades","last":"Rogers","cls":"C"},{"first":"Wendell Wayne","last":"Romans","cls":"CM"},{"first":"Rick Dewayne","last":"Scoggins","cls":"CM"},{"first":"Raymond A","last":"Scott","cls":"C"},{"first":"Thomas Alva","last":"Scott","cls":"C"},{"first":"Jose Alonzo","last":"Segura","cls":""},{"first":"James Patrick","last":"Shannon","cls":"C"},{"first":"John-Travis","last":"Smith","cls":""},{"first":"Rockey J","last":"Smith","cls":""},{"first":"James Randell","last":"Stewart","cls":"BM"},{"first":"Cathy Sullivan","last":"Stewart","cls":"C"},{"first":"Ralph Leonard","last":"Stinson","cls":""},{"first":"Christopher Derek","last":"Sullivan","cls":""},{"first":"John David","last":"Templeton","cls":"AM"},{"first":"Keith Hoyt","last":"Terry","cls":"B"},{"first":"Jeffrey Sherbrook","last":"Vance","cls":"C"},{"first":"Kenneth Eugene","last":"Voiles","cls":""},{"first":"James Ray","last":"Wall","cls":"C"},{"first":"Sherrell Gene","last":"Walker, Jr.","cls":""},{"first":"Ryan Scott","last":"Welch","cls":"C"},{"first":"EMILY KATE","last":"Welch","cls":"C"},{"first":"David","last":"Wells","cls":""},{"first":"Laura","last":"Wells","cls":""},{"first":"Gregory Edward","last":"Werner","cls":"BM"},{"first":"Nancy Dickerson","last":"Wiggins","cls":"C"},{"first":"Nickey Lynn","last":"Wiggins","cls":"CM"},{"first":"Michael Steven","last":"Wilburn","cls":"CM"},{"first":"James Floyd","last":"Wilcox","cls":"C"},{"first":"Daniel Ray","last":"Williams","cls":"C"},{"first":"David Bruce","last":"Williams","cls":"AM"},{"first":"Thomas Hickman","last":"Williams","cls":"CM"},{"first":"Thomas Brent (Brent)","last":"Wilson","cls":"A"},{"first":"John Alan","last":"Wheat","cls":"BM"},{"first":"Lloyd Allen","last":"Wright","cls":""}
+];
+
+// Bump when the shape/source of the reference data above changes — drives
+// the one-time migration in initData() that replaces stale seeded assets
+// (and clears demo/stale assignments that pointed at them).
+const SEED_DATA_VERSION = 7;
+
+function slugify(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+
+function assetsOfRollingStockKind(kind) {
+  return ROLLING_STOCK_ASSETS.filter(r => r.kind === kind).map(r => ({
+    id: kind + '_' + slugify(r.unit),
+    kind, number: r.unit, label: r.unit, description: r.description,
+    category: r.category, outOfService: !!r.oos,
+    sheetStatus: r.status || 'Available',
+    model: r.m || '', comments: r.c || '',
+    hitchType: r.hitch || '', emptyWeight: r.ew || null, gvwr: r.gvwr || null,
+    ...(kind === 'truck' ? { gooseneckCapable: /gooseneck|goose neck|\bgn\b/i.test(r.hitch || ''), towCapacity: null } : {}),
+    ...(kind === 'equipment' ? { approvedTrailerIds: [] } : {}),
+  }));
+}
+function buildTrailerAssets() { return assetsOfRollingStockKind('trailer'); }
+function buildTruckAssets() { return assetsOfRollingStockKind('truck'); }
+function buildEquipmentAssets() { return assetsOfRollingStockKind('equipment'); }
+function buildDriverAssets() {
+  return APPROVED_DRIVERS.map((d, i) => ({
+    id: 'driver_' + i + '_' + slugify(d.last),
+    kind: 'driver', number: '', label: (d.first + ' ' + d.last).trim(),
+    description: d.cls ? 'License Class ' + d.cls : '', outOfService: false,
+    cls: d.cls || '',
+  }));
+}
+function buildSeedAssets() {
+  return [...buildTrailerAssets(), ...buildTruckAssets(), ...buildEquipmentAssets(), ...buildDriverAssets()];
+}
+
+/* -------------------- DB wiring -------------------- */
+let unsubAssets = null, unsubAssignments = null, unsubLog = null;
+
+// Re-render on data arrival — but never while the viewer is inside the
+// New/Edit Assignment form: render() rebuilds the whole view, so a snapshot
+// landing mid-form would wipe everything typed. The form reads
+// state.assets/state.assignments live at interaction time, so conflict
+// checks still see fresh data without a rebuild.
+function snapshotRender() {
+  if (state.route === 'new' || state.route === 'edit') return;
+  render();
+}
+
+// Guarded state updates. The assets collection can NEVER legitimately be
+// empty (the seeded reference fleet always exists), so an empty delivery is
+// always a degraded read — a cache-only snapshot while a slept tab
+// reconnects, or a read over a dead bridge — and must not wipe good data
+// off the screen. Assignments and the log CAN legitimately be empty, so an
+// empty delivery is accepted only when it is server-definitive
+// (not fromCache) or nothing was held locally anyway.
+function acceptAssets(docs) {
+  if (docs.length === 0 && state.assets.length > 0) return false;
+  state.assets = docs.map(d => ({ id: d.id, ...d.data() }));
+  return true;
+}
+function definitive(snapOrNull) {
+  return !snapOrNull || !snapOrNull.metadata || snapOrNull.metadata.fromCache === false;
+}
+function acceptAssignments(docs, snap) {
+  if (docs.length === 0 && state.assignments.length > 0 && !definitive(snap)) return false;
+  state.assignments = docs.map(d => ({ id: d.id, ...d.data() }));
+  return true;
+}
+function acceptLog(docs, snap) {
+  if (docs.length === 0 && state.log.length > 0 && !definitive(snap)) return false;
+  state.log = docs.map(d => ({ id: d.id, ...d.data() }));
+  return true;
+}
+
+function attachSubscriptions(db) {
+  try { if (unsubAssets) unsubAssets(); } catch (e) {}
+  try { if (unsubAssignments) unsubAssignments(); } catch (e) {}
+  try { if (unsubLog) unsubLog(); } catch (e) {}
+
+  unsubAssets = db.collection('assets').onSnapshot(snap => {
+    acceptAssets(snap.docs);
+    state.ready = true;
+    snapshotRender();
+  }, () => {});
+
+  unsubAssignments = db.collection('assignments').onSnapshot(snap => {
+    acceptAssignments(snap.docs, snap);
+    state.ready = true;
+    snapshotRender();
+  }, () => {});
+
+  unsubLog = db.collection('log').orderBy('at', 'desc').limit(500).onSnapshot(snap => {
+    acceptLog(snap.docs, snap);
+    snapshotRender();
+  }, () => {});
+}
+
+async function initData() {
+  let db = null;
+  try { db = await claude.use('db'); } catch (e) { db = null; }
+
+  // Downloads capability resolves independently; the Download buttons only
+  // appear once (and if) it lands, so nothing here blocks first render.
+  try {
+    claude.use('downloads').then(d => { if (d) { state.downloads = d; render(); } }).catch(() => {});
+  } catch (e) { /* no capability runtime in this view */ }
+  // Google Drive bridge (mcp): once it lands, pull live statuses from the
+  // Rolling Stock sheet. Resolves independently; nothing blocks first render.
+  try {
+    claude.use('mcp').then(m => { if (m) { state.mcp = m; syncRollingStock(); } }).catch(() => {});
+  } catch (e) { /* no capability runtime in this view */ }
+  state.db = db;
+
+  if (!db) {
+    // No db capability available in this view — run on local in-memory data.
+    state.assets = buildSeedAssets();
+    state.assignments = [];
+    state.ready = true;
+    render();
+    return;
+  }
+
+  // Subscribe first so the page renders with whatever is already in the
+  // store — even mid-migration, even stale — instead of sitting on the
+  // loading placeholder until a (possibly slow) migration finishes below.
+  attachSubscriptions(db);
+
+  // Belt-and-suspenders: a brand-new store with nothing to deliver yet
+  // (first-ever open, before seeding writes anything) could otherwise leave
+  // the page on the loading placeholder indefinitely. Force it open.
+  setTimeout(() => { if (!state.ready) { state.ready = true; render(); } }, 4000);
+
+  try {
+    await runMigrationIfNeeded(db);
+  } catch (e) { /* seeding/migration is best-effort */ }
+}
+
+// Writes `items` through `fn` in small concurrent batches instead of one
+// await per item — the version this replaced serialized ~150 individual
+// round trips (16 trucks + 4 equipment + 130 drivers) before the page had
+// rendered anything, which is what made the dashboard look stuck loading.
+// allSettled so one slow/failed write in a batch doesn't stall the rest.
+async function writeInBatches(items, fn, batchSize) {
+  batchSize = batchSize || 10;
+  for (let i = 0; i < items.length; i += batchSize) {
+    await Promise.allSettled(items.slice(i, i + batchSize).map(fn));
+  }
+}
+
+async function runMigrationIfNeeded(db) {
+  const metaRef = db.doc('meta/seed');
+  const metaSnap = await metaRef.get();
+  let seededVersion;
+  if (metaSnap.exists) {
+    seededVersion = metaSnap.data().version || 0;
+  } else {
+    // No version marker: distinguish a truly empty store (fresh install)
+    // from an older install that was seeded before this marker existed.
+    const anyAsset = await db.collection('assets').limit(1).get();
+    seededVersion = anyAsset.empty ? 0 : 1;
+  }
+  if (seededVersion >= SEED_DATA_VERSION) return;
+
+  if (seededVersion < 1) {
+    // Fresh install — nothing to clean up, just write the full reference set.
+    await writeInBatches(buildSeedAssets(), a => db.doc('assets/' + a.id).set(a));
+  } else if (seededVersion >= 3) {
+    // v3+ upgrades refresh reference fields on the same Rolling Stock
+    // assets (identical ids). In-place upsert that PRESERVES anything the
+    // fleet manager verified by hand (towCapacity, statusSource) — no
+    // deletions, and existing assignments stay untouched. Assets added by
+    // a live sheet sync (synced: true) aren't in the seed and are left alone.
+    const existingSnap = await db.collection('assets').get();
+    const existingById = {};
+    existingSnap.docs.forEach(d => { existingById[d.id] = d.data(); });
+    await writeInBatches(buildSeedAssets(), a => {
+      const prev = existingById[a.id];
+      if (prev) {
+        if (prev.towCapacity != null) a.towCapacity = prev.towCapacity;
+        if (prev.statusSource) { a.statusSource = prev.statusSource; if (prev.statusSource === 'board') { a.sheetStatus = prev.sheetStatus; a.outOfService = prev.outOfService; } }
+      }
+      return db.doc('assets/' + a.id).set(a);
+    });
+  } else {
+    // Existing install running an older reference set (mock data, or the
+    // earlier Fleet-Management-sourced trucks/equipment with mock
+    // trailers) — replace trailers, trucks, equipment, and drivers with the
+    // Rolling-Stock-sourced set. Anything a dispatcher wrote in by hand
+    // (asset.writeIn) is real data, not stale seed data, so it's kept.
+    // Assignments referencing the old ids no longer resolve, so they're
+    // cleared too.
+    const staleSnap = await db.collection('assets').where('kind', 'in', ['trailer', 'truck', 'equipment', 'driver']).get();
+    const staleDocs = staleSnap.docs.filter(d => !d.data().writeIn);
+    await writeInBatches(staleDocs, d => db.doc('assets/' + d.id).delete());
+    const assignSnap = await db.collection('assignments').get();
+    await writeInBatches(assignSnap.docs, d => db.doc('assignments/' + d.id).delete());
+    await writeInBatches(buildSeedAssets(), a => db.doc('assets/' + a.id).set(a));
+  }
+  await metaRef.set({ version: SEED_DATA_VERSION, at: Date.now() });
+}
+
+const KIND_LABELS = { trailer: 'Trailer', truck: 'Truck', equipment: 'Equipment item', driver: 'Driver' };
+function sourceSheetFor(kind) { return kind === 'driver' ? 'the Approved Drivers list' : 'Rolling Stock'; }
+
+// A write-in creates a real, bookable asset (so double-booking and
+// back-to-back checks apply to it exactly like anything from Rolling
+// Stock/Approved Drivers) but flags it `writeIn: true` so a later reference
+// data migration never deletes it as stale seed data. Every write-in shows
+// a one-time toast naming the sheet it should be added to.
+async function createWriteInAsset(kind, label) {
+  const id = 'writein_' + kind + '_' + slugify(label) + '_' + Date.now().toString(36);
+  const asset = {
+    id, kind, number: '', label, description: '', outOfService: false, writeIn: true,
+    ...(kind !== 'driver' ? { category: 'Other' } : {}),
+    ...(kind === 'equipment' ? { approvedTrailerIds: [] } : {}),
+  };
+  if (state.db) {
+    try { await state.db.doc('assets/' + id).set(asset); } catch (e) { /* best-effort */ }
+  }
+  if (!state.assets.find(a => a.id === id)) { state.assets.push(asset); } // optimistic, ahead of the snapshot round trip
+  showToast('Added "' + label + '" as a new ' + KIND_LABELS[kind] + '. Update ' + sourceSheetFor(kind) + ' so it stays in sync.');
+  return id;
+}
+
+async function saveAssignmentDoc(id, data) {
+  if (state.db) { await state.db.doc('assignments/' + id).set(data); }
+  else {
+    const idx = state.assignments.findIndex(a => a.id === id);
+    const rec = { id, ...data };
+    if (idx >= 0) state.assignments[idx] = rec; else state.assignments.push(rec);
+    render();
+  }
+}
+async function deleteAssignmentDoc(id) {
+  if (state.db) { await state.db.doc('assignments/' + id).delete(); }
+  else {
+    state.assignments = state.assignments.filter(a => a.id !== id);
+    render();
+  }
+}
+
+// -------------------- Booking / cancellation log --------------------
+// One immutable entry per booking event. Labels are snapshotted at write
+// time so an entry still reads correctly after an asset is renamed or
+// removed. Every write also opportunistically prunes entries beyond the cap
+// so the log never grows without bound.
+const LOG_CAP = 900;
+function labelOf(id) { const a = id ? assetById(id) : null; return a ? a.label : (id ? '(removed)' : '—'); }
+async function appendLog(action, asg) {
+  const entry = {
+    at: Date.now(),
+    action, // 'Booked' | 'Updated' | 'Canceled'
+    deploymentName: asg.deploymentName || '',
+    trailer: labelOf(asg.trailerId),
+    truck: labelOf(asg.truckId),
+    equipment: asg.equipmentId ? labelOf(asg.equipmentId) : '—',
+    driver: labelOf(asg.driverId),
+    deployDate: asg.deployDate || '',
+    returnDate: asg.returnDate || '',
+  };
+  const id = 'log_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  if (state.db) {
+    try {
+      await state.db.doc('log/' + id).set(entry);
+      const over = await state.db.collection('log').orderBy('at', 'desc').limit(1000).get();
+      if (over.docs.length > LOG_CAP) {
+        const stale = over.docs.slice(LOG_CAP);
+        for (const d of stale) { try { await state.db.doc('log/' + d.id).delete(); } catch (e) {} }
+      }
+    } catch (e) { /* logging is best-effort */ }
+  } else {
+    state.log.unshift({ id, ...entry });
+    state.log = state.log.slice(0, LOG_CAP);
+    render();
+  }
+}
+
+/* -------------------- CSV downloads --------------------
+   Page-initiated downloads are blocked in the artifact viewer, so saves go
+   through the platform downloads capability: the viewer sees a confirmation
+   and can decline (which is a normal outcome, not an error). Buttons only
+   render when the capability resolved for this view. */
+function csvEscape(v) {
+  const s = (v === null || v === undefined) ? '' : String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function buildScheduleCSV() {
+  const today = toISODate(todayDateOnly());
+  const header = ['Deployment', 'Category', 'Status', 'Trailer', 'Truck', 'Equipment', 'Driver', 'Departure', 'Return', 'Return Trips', 'Notes'];
+  const rows = state.assignments.slice().sort((a, b) => (a.deployDate || '').localeCompare(b.deployDate || ''));
+  const lines = [header.join(',')];
+  rows.forEach(a => {
+    const status = (a.returnDate && a.returnDate < today) ? 'Returned' : ((a.deployDate && a.deployDate <= today) ? 'Deployed' : 'Scheduled');
+    const trips = returnTripsOf(a).map(t =>
+      returnTripScopeLabel(a, t) + ': ' + (t.driverId ? labelOf(t.driverId) : 'driver TBD') + (t.date ? ' on ' + t.date : ', date TBD')
+    ).join('; ');
+    lines.push([
+      a.deploymentName, categoryForAssignment(a), status,
+      labelOf(a.trailerId), labelOf(a.truckId), a.equipmentId ? labelOf(a.equipmentId) : '',
+      labelOf(a.driverId), a.deployDate || '', a.returnDate || '',
+      trips, a.notes || '',
+    ].map(csvEscape).join(','));
+  });
+  return lines.join('\r\n');
+}
+function buildLogCSV() {
+  const header = ['When', 'Action', 'Deployment', 'Trailer', 'Truck', 'Equipment', 'Driver', 'Departure', 'Return'];
+  const lines = [header.join(',')];
+  state.log.forEach(e => {
+    lines.push([
+      new Date(e.at).toLocaleString('en-US'), e.action, e.deploymentName,
+      e.trailer, e.truck, e.equipment, e.driver, e.deployDate, e.returnDate,
+    ].map(csvEscape).join(','));
+  });
+  return lines.join('\r\n');
+}
+// Live per-unit status in Rolling Stock's own vocabulary, ready to paste
+// into that sheet's STATUS column: Available / Assigned (booked for a
+// future window) / Deployed (out right now) / Out of Service. Transitions
+// happen automatically — booking a vehicle makes it Assigned, then
+// Deployed once its departure date arrives, and it reverts to Available
+// the day after its return date or the moment the booking is canceled.
+function buildFleetStatusCSV() {
+  const header = ['Unit', 'Type', 'Category', 'Status', 'Deployment', 'Return Date'];
+  const KINDS = [['truck', 'Truck'], ['trailer', 'Trailer'], ['equipment', 'Equipment']];
+  const lines = [header.join(',')];
+  KINDS.forEach(([kind, kindLabel]) => {
+    // Unfiltered on purpose: the export mirrors the whole sheet, so Staff
+    // vehicles (hidden on the board) still appear here with their status.
+    state.assets.filter(a => a.kind === kind)
+      .sort((a,b) => a.label.localeCompare(b.label, undefined, {numeric:true}))
+      .forEach(a => {
+      const st = currentAssetStatus(a);
+      const statusWord = st.code === 'oos' ? 'Out of Service'
+        : st.code === 'deployed' ? 'Deployed'
+        : st.code === 'future' ? 'Assigned'
+        // No booking on this board: keep whatever status the Rolling Stock
+        // sheet itself carries (Assigned/Deployed set there stays put).
+        : (a.sheetStatus || 'Available');
+      lines.push([
+        a.label, kindLabel, a.category || 'Other', statusWord,
+        st.booking ? st.booking.deploymentName : '',
+        st.booking ? st.booking.returnDate : '',
+      ].map(csvEscape).join(','));
+    });
+  });
+  return lines.join('\r\n');
+}
+
+// Manual refresh. Two jobs:
+// 1) Re-arm the live subscriptions — a listener in a tab that slept
+//    overnight can be dead, and a fresh onSnapshot is the documented
+//    recovery. The re-armed listeners repopulate state on their own.
+// 2) Direct reads as belt-and-suspenders, applied through the guarded
+//    setters above — a degraded read (empty where data must exist) is
+//    DISCARDED, never allowed to zero out the screen; the previous
+//    refresh-button bug did exactly that.
+// Never re-renders over an in-progress New/Edit form — the form reads
+// refreshed state live, so nothing typed is lost.
+async function manualRefresh(btn) {
+  if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+  let healthy = true;
+  if (state.db) {
+    attachSubscriptions(state.db);
+    const [a, s, l] = await Promise.allSettled([
+      state.db.collection('assets').get(),
+      state.db.collection('assignments').get(),
+      state.db.collection('log').orderBy('at', 'desc').limit(500).get(),
+    ]);
+    const assetsOk = a.status === 'fulfilled' && acceptAssets(a.value.docs);
+    if (s.status === 'fulfilled') {
+      // If the assets read proved the read path healthy, trust an empty
+      // assignments result as real (everything may genuinely be canceled).
+      if (assetsOk && s.value.docs.length === 0) state.assignments = [];
+      else acceptAssignments(s.value.docs, s.value);
+    }
+    if (l.status === 'fulfilled') {
+      if (assetsOk && l.value.docs.length === 0) state.log = [];
+      else acceptLog(l.value.docs, l.value);
+    }
+    healthy = assetsOk || a.status === 'fulfilled';
+  }
+  // Pull live statuses from the Rolling Stock sheet too, when this view
+  // can reach the viewer's Google Drive connector.
+  if (state.mcp) await syncRollingStock();
+  if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+  if (state.route !== 'new' && state.route !== 'edit') render();
+  let msg;
+  if (!healthy) msg = 'Connection is shaky — showing the last good data. Try again in a moment.';
+  else if (state.rsSync.status === 'ok') {
+    const n = state.rsSync.changes || 0;
+    msg = 'Refreshed. Rolling Stock synced' + (n ? ' — ' + n + ' status change' + (n === 1 ? '' : 's') + '.' : ' — no changes.');
+  } else if (state.rsSync.status === 'error') msg = 'Refreshed. ' + state.rsSync.message;
+  else msg = 'Refreshed.';
+  showToast(msg);
+}
+
+/* -------------------- Live Rolling Stock sheet sync -------------------- */
+// The Rolling Stock Google Sheet is the source of truth for per-unit
+// status. The embedded snapshot above is only the seed/fallback; whenever
+// this view can reach the viewer's Google Drive connector, the sheet's
+// first tab (Current Rolling Stock) is fetched as CSV and each unit's
+// STATUS column is applied to the matching asset — on load and on every
+// Refresh — so an edit made in the sheet shows up here without a republish.
+const RS_FILE_ID = '1IuyO1B9EBLCY9ckS0mUPEMpzmAF4hgpHGoHScsV8gsM';
+
+// Normalize a sheet STATUS word into a bucket the UI can place. The raw
+// word is kept for display (the sheet says "Staff", the pill says Staff).
+function sheetBucket(status) {
+  const s = String(status || '').trim().toLowerCase();
+  if (!s || s === 'available' || s === 'active') return 'available';
+  if (s === 'deployed') return 'deployed';
+  if (s === 'out of service' || s === 'oos' || s === 'decommissioned' || s.indexOf('dissolved') === 0) return 'oos';
+  return 'assigned'; // Staff, Assigned, and anything else non-available
+}
+
+// Minimal CSV parser (quoted fields, doubled quotes, CRLF).
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); field = ''; rows.push(row); row = [];
+    } else field += ch;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function b64ToUtf8(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+// Parse the Current Rolling Stock CSV into {unit -> {status, area, type, desc}}.
+function parseRollingStockCSV(csvText) {
+  const rows = parseCSV(csvText);
+  if (!rows.length) return null;
+  const hdr = rows[0].map(c => c.trim().toUpperCase());
+  const col = name => hdr.indexOf(name);
+  const uc = col('#'), sc = col('STATUS');
+  if (uc < 0 || sc < 0) return null; // layout changed beyond recognition — don't guess
+  const mc = col('MINISTRY AREA'), tc = col('TYPE'), cc = col('COMMENTS'),
+        yc = col('YEAR'), mk = col('MAKE'), md = col('MODEL'),
+        hc = col('HITCH'), ec = col('EMPTY WEIGHT'), gc = col('GVWR');
+  const cell = (r, i) => (i >= 0 && i < r.length ? String(r[i]).trim() : '');
+  const weight = (r, i) => {
+    const digits = cell(r, i).replace(/[^0-9]/g, '');
+    const n = digits ? parseInt(digits, 10) : 0;
+    return n > 100 ? n : null; // ignore junk like "0", "N/A", footnote counts
+  };
+  const units = {};
+  rows.slice(1).forEach(r => {
+    const unit = cell(r, uc);
+    if (!unit || unit === '#') return;
+    units[unit] = {
+      status: cell(r, sc), area: cell(r, mc), type: cell(r, tc),
+      desc: [ [cell(r, yc), cell(r, mk), cell(r, md)].filter(Boolean).join(' '), cell(r, cc) ].filter(Boolean).join(' — '),
+      model: cell(r, md), comments: cell(r, cc),
+      hitch: cell(r, hc), ew: weight(r, ec), gvwr: weight(r, gc),
+    };
+  });
+  return Object.keys(units).length ? units : null;
+}
+
+function kindForSheetRow(info) {
+  const t = (info.type || '').toLowerCase();
+  if (t.indexOf('equipment') >= 0) return 'equipment';
+  if (t.indexOf('trailer') >= 0) return 'trailer';
+  if (t.indexOf('vehicle') >= 0 || t.indexOf('truck') >= 0) return 'truck';
+  return 'trailer';
+}
+function categoryForSheetRow(unit, info) {
+  if (/\bRB\b|rebuild/i.test(unit + ' ' + (info.desc || ''))) return 'Rebuild';
+  return (info.area || '').trim().toUpperCase() === 'DR' ? 'DR' : 'Other';
+}
+
+let rsSyncInFlight = false;
+async function syncRollingStock() {
+  if (!state.mcp || rsSyncInFlight) return;
+  rsSyncInFlight = true;
+  try {
+    let result;
+    try {
+      result = await state.mcp.callTool('Google Drive', 'download_file_content',
+        { fileId: RS_FILE_ID, exportMimeType: 'text/csv' });
+    } catch (e) {
+      if (e && e.retryable) {
+        await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
+        result = await state.mcp.callTool('Google Drive', 'download_file_content',
+          { fileId: RS_FILE_ID, exportMimeType: 'text/csv' });
+      } else throw e;
+    }
+    let payload = result && result.payload;
+    if (typeof payload === 'string') { try { payload = JSON.parse(payload); } catch (e) { payload = null; } }
+    const b64 = payload && payload.content;
+    const units = b64 ? parseRollingStockCSV(b64ToUtf8(b64)) : null;
+    if (!units) throw { code: 'parse', message: 'Unexpected sheet layout' };
+
+    // Apply to matching assets; add units the board has never seen.
+    const bySlug = {};
+    state.assets.forEach(a => { if (a.kind !== 'driver') bySlug[slugify(a.label)] = a; });
+    const changed = [];
+    Object.keys(units).forEach(unit => {
+      const info = units[unit];
+      const raw = info.status || 'Available';
+      const existing = bySlug[slugify(unit)];
+      if (existing) {
+        const oos = sheetBucket(raw) === 'oos';
+        const hitch = info.hitch || '';
+        const gnCap = existing.kind === 'truck' ? /gooseneck|goose neck|\bgn\b/i.test(hitch) : undefined;
+        if (existing.sheetStatus !== raw || existing.outOfService !== oos || existing.statusSource === 'board' ||
+            existing.hitchType !== hitch || existing.emptyWeight !== (info.ew || null) || existing.gvwr !== (info.gvwr || null) ||
+            existing.model !== (info.model || '') || existing.comments !== (info.comments || '') ||
+            (gnCap !== undefined && existing.gooseneckCapable !== gnCap)) {
+          existing.sheetStatus = raw;
+          existing.outOfService = oos;
+          existing.statusSource = 'sheet';
+          existing.hitchType = hitch;
+          existing.emptyWeight = info.ew || null;
+          existing.gvwr = info.gvwr || null;
+          existing.model = info.model || '';
+          existing.comments = info.comments || '';
+          if (gnCap !== undefined) existing.gooseneckCapable = gnCap;
+          changed.push(existing); // in-memory object keeps any verified towCapacity
+        }
+      } else {
+        const kind = kindForSheetRow(info);
+        const added = {
+          id: kind + '_' + slugify(unit), kind, number: unit, label: unit,
+          description: info.desc || '', category: categoryForSheetRow(unit, info),
+          outOfService: sheetBucket(raw) === 'oos', sheetStatus: raw, synced: true,
+          model: info.model || '', comments: info.comments || '',
+          hitchType: info.hitch || '', emptyWeight: info.ew || null, gvwr: info.gvwr || null,
+          ...(kind === 'truck' ? { gooseneckCapable: /gooseneck|goose neck|\bgn\b/i.test(info.hitch || ''), towCapacity: null } : {}),
+          ...(kind === 'equipment' ? { approvedTrailerIds: [] } : {}),
+        };
+        state.assets.push(added);
+        changed.push(added);
+      }
+    });
+    if (state.db && changed.length) {
+      await writeInBatches(changed, a => state.db.doc('assets/' + a.id).set(a));
+    }
+    state.rsSync = { status: 'ok', at: Date.now(), message: null, changes: changed.length };
+  } catch (e) {
+    const code = e && e.code;
+    const msg = code === 'server_not_connected' ? 'Google Drive isn’t connected in this view — add it in claude.ai Settings → Connectors to sync Rolling Stock.'
+      : code === 'needs_reauth' ? 'Reconnect Google Drive in claude.ai Settings → Connectors to sync Rolling Stock.'
+      : code === 'selection_required' ? 'Choose a Google Drive connector when prompted, then press Refresh.'
+      : code === 'not_granted' || code === 'blocked_by_policy' || code === 'approval_required' ? 'This view doesn’t have access to Google Drive — statuses shown are from the last sync.'
+      : 'Couldn’t reach the Rolling Stock sheet — statuses shown are from the last sync.';
+    state.rsSync = { status: 'error', at: state.rsSync.at, message: msg };
+  } finally {
+    rsSyncInFlight = false;
+  }
+  if (state.route !== 'new' && state.route !== 'edit') render();
+}
+
+async function downloadCSV(filename, csv) {
+  if (!state.downloads) return;
+  try {
+    await state.downloads.save({ filename, data: csv });
+    showToast('Downloaded ' + filename + '.');
+  } catch (e) {
+    if (e && e.code === 'declined') return;            // viewer said no — that's fine
+    if (e && e.code === 'rate_limited') { showToast('A download prompt is already open — try again in a moment.'); return; }
+    showToast('Download isn’t available right now.');
+  }
+}
+function downloadButton(label, handler) {
+  if (!state.downloads) return null;
+  const btn = el('button', { class: 'btn secondary', type: 'button' });
+  btn.innerHTML = icon('download', 15) + '<span>' + label + '</span>';
+  btn.addEventListener('click', handler);
+  return btn;
+}
+
+/* =====================================================================
+   DOMAIN LOGIC
+   ===================================================================== */
+function assetById(id) { return state.assets.find(a => a.id === id) || null; }
+
+function assignmentsForAsset(assetId, excludeAssignmentId) {
+  return state.assignments.filter(a =>
+    excludeAssignmentId !== a.id &&
+    (a.trailerId === assetId || a.truckId === assetId || a.equipmentId === assetId || a.driverId === assetId)
+  );
+}
+
+/* ---- Return trips ----
+   Every assignment carries at least one return trip. When the trailer or
+   the equipment is checked to REMAIN ON SCENE, the single return splits
+   into two separate returns — one for the trailer, one for the equipment —
+   each with its own driver and date, assignable later. With nothing
+   checked there is one return covering everything, as before. Older docs
+   carry a flat returnDriverId/returnTripDate pair; normalize them here. */
+function returnTripsOf(a) {
+  if (Array.isArray(a.returnTrips) && a.returnTrips.length) return a.returnTrips;
+  return [{ scope: 'all', driverId: a.returnDriverId || null, date: a.returnTripDate || '' }];
+}
+function returnTripScopeLabel(a, t) {
+  if (t.scope === 'trailer') return 'Trailer ' + labelOf(a.trailerId);
+  if (t.scope === 'equipment') return 'Equipment ' + (a.equipmentId ? labelOf(a.equipmentId) : '');
+  return 'Full Return';
+}
+// The split happens only when there's actually equipment to separate from
+// the trailer; a lone trailer's return already covers everything.
+function activeReturnScopes(blk) {
+  return ((blk.trailerRemains || blk.equipmentRemains) && blk.equipmentId) ? ['trailer', 'equipment'] : ['all'];
+}
+
+// Check a due return in: record the returning assets' condition (Available
+// or Out of Service), stamp the trip as checked in, update each asset's
+// status, and log it. The chosen status applies to the returning cargo —
+// the trailer and/or equipment in the trip's scope; the truck's own
+// availability already follows the booking window.
+function returnAssetsForScope(a, scope) {
+  if (scope === 'trailer') return [a.trailerId].filter(Boolean);
+  if (scope === 'equipment') return [a.equipmentId].filter(Boolean);
+  return [a.trailerId, a.equipmentId].filter(Boolean);
+}
+async function checkInReturn(a, scope, statusWord) {
+  const trips = returnTripsOf(a).map(t => Object.assign({}, t));
+  const trip = trips.find(t => t.scope === scope);
+  if (!trip) return;
+  trip.checkedIn = { status: statusWord, at: Date.now() };
+  const oos = statusWord === 'Out of Service';
+  const assetIds = returnAssetsForScope(a, scope);
+  const names = [];
+  for (const id of assetIds) {
+    const asset = assetById(id);
+    if (!asset) continue;
+    asset.outOfService = oos;
+    asset.sheetStatus = statusWord;
+    asset.statusSource = 'board'; // set here, not read from the sheet
+    names.push(asset.label);
+    if (state.db) { try { await state.db.doc('assets/' + id).set(asset); } catch (e) {} }
+  }
+  const updated = Object.assign({}, a, { returnTrips: trips });
+  delete updated.id;
+  await saveAssignmentDoc(a.id, updated);
+  const idx = state.assignments.findIndex(x => x.id === a.id);
+  if (idx >= 0) state.assignments[idx] = Object.assign({ id: a.id }, updated);
+  appendLog('Returned', Object.assign({}, updated, {
+    deploymentName: (a.deploymentName || '') + ' — checked in ' + statusWord,
+    driverId: trip.driverId, deployDate: trip.date || a.returnDate, returnDate: trip.date || a.returnDate,
+  }));
+  showToast(names.join(', ') + ' checked in as ' + statusWord + '. Update Rolling Stock (or download Fleet Status) so the sheet matches.');
+  render();
+}
+
+/* ---- Towing capacity & CDL-A control ----
+   Capacity hierarchy: (1) TXM-verified per-vehicle tow capacity entered on
+   this board, (2..3) VIN/manufacturer ratings live outside this system —
+   enter them as the verified value, (4) TXM conservative class default.
+   Never assume a truck has the manufacturer's maximum advertised rating. */
+const TXM_CLASS_TOW_DEFAULTS = { '3q': 15000, 'srw1ton': 18000, 'drw': 20000 };
+// Conservative GVWR estimates used ONLY for the CDL-A combination check
+// when the sheet has no GVWR for the truck — erring heavy, never light.
+const TXM_CLASS_GVWR_ESTIMATES = { '3q': 10000, 'srw1ton': 11500, 'drw': 14000, 'hdplus': 19500 };
+
+function truckClassOf(truck) {
+  const t = ((truck.label || '') + ' ' + (truck.description || '')).toLowerCase();
+  if (/\b(4500|5500|f-?450|f-?550)\b/.test(t)) return 'hdplus';
+  if (/dually|\bdrw\b/.test(t)) return 'drw';
+  if (/\b(3500|f-?350)\b/.test(t)) return 'srw1ton';
+  if (/\b(2500|f-?250)\b/.test(t)) return '3q';
+  return 'light'; // light-duty pickup / SUV / van — vehicle-specific rating required
+}
+function truckClassWord(cls) {
+  return cls === 'hdplus' ? 'F-450/4500-class and above' : cls === 'drw' ? '1-ton dually'
+    : cls === 'srw1ton' ? '1-ton single-wheel' : cls === '3q' ? '3/4-ton HD' : 'light-duty';
+}
+// {value, source} — source: 'verified' | 'default' | null (rating required)
+function towCapacityOf(truck) {
+  if (!truck) return { value: null, source: null };
+  if (truck.towCapacity) return { value: truck.towCapacity, source: 'verified' };
+  const dflt = TXM_CLASS_TOW_DEFAULTS[truckClassOf(truck)];
+  return dflt ? { value: dflt, source: 'default' } : { value: null, source: null };
+}
+function truckGvwrOf(truck) {
+  if (!truck) return { value: null, provisional: false };
+  if (truck.gvwr) return { value: truck.gvwr, provisional: false };
+  const est = TXM_CLASS_GVWR_ESTIMATES[truckClassOf(truck)];
+  return est ? { value: est, provisional: true } : { value: null, provisional: false };
+}
+// Gooseneck-class trailers (gooseneck / GN / fifth wheel / kingpin) may
+// only pair with vehicles documented gooseneck-capable — never on bumper
+// capacity alone.
+function isGooseneckTrailer(trailer) {
+  if (!trailer) return false;
+  const t = ((trailer.hitchType || '') + ' ' + (trailer.description || '')).toLowerCase();
+  return /gooseneck|goose neck|\bgn\b|fifth wheel|kingpin/.test(t);
+}
+// {value, source: 'entered'|'gvwr'|null} — never assume an unknown trailer is empty.
+function trailerWeightOf(trailer, enteredLoadedWeight) {
+  if (enteredLoadedWeight) return { value: enteredLoadedWeight, source: 'entered' };
+  if (trailer && trailer.gvwr) return { value: trailer.gvwr, source: 'gvwr' };
+  return { value: null, source: null };
+}
+function fmtLb(n) { return n == null ? '—' : n.toLocaleString('en-US') + ' lb'; }
+
+// Full compatibility read for a proposed truck+trailer pairing.
+// status: 'green' | 'yellow' | 'red' (+ reasons), reserve, CDL data.
+function towCompatFor(trailer, truck, enteredLoadedWeight) {
+  const out = { status: null, reasons: [], reserve: null, cap: null, weight: null,
+                cdlRequired: false, combined: null, combinedProvisional: false, gooseneck: false };
+  if (!trailer || !truck) return out;
+  out.gooseneck = isGooseneckTrailer(trailer);
+  const cap = towCapacityOf(truck);
+  const wt = trailerWeightOf(trailer, enteredLoadedWeight);
+  out.cap = cap; out.weight = wt;
+  if (out.gooseneck && !truck.gooseneckCapable) {
+    out.status = 'red';
+    out.reasons.push(truck.label + ' is not documented gooseneck/fifth-wheel capable — ' + trailer.label + ' requires a gooseneck hitch.');
+  }
+  if (cap.value != null && wt.value != null) {
+    out.reserve = cap.value - wt.value;
+    if (out.reserve < 0 && out.status !== 'red') {
+      out.status = 'red';
+      out.reasons.push(trailer.label + ' at ' + fmtLb(wt.value) + ' exceeds ' + truck.label + '’s ' + (cap.source === 'verified' ? 'verified' : 'TXM default') + ' capacity of ' + fmtLb(cap.value) + '.');
+    } else if (out.reserve < 0) {
+      out.reasons.push('Weight also exceeds capacity by ' + fmtLb(-out.reserve) + '.');
+    }
+  }
+  if (out.status !== 'red') {
+    if (cap.value == null) { out.status = 'yellow'; out.reasons.push('No verified tow capacity for ' + truck.label + ' (' + truckClassWord(truckClassOf(truck)) + ' — vehicle-specific rating required).'); }
+    if (wt.value == null) { out.status = 'yellow'; out.reasons.push('No loaded weight or GVWR on file for ' + trailer.label + ' — enter the actual loaded weight.'); }
+    if (!out.status) out.status = 'green';
+  }
+  // CDL-A: rated combination weight (GVWR + GVWR), never bypassed by the
+  // actual load carried today.
+  const tg = truckGvwrOf(truck);
+  if (tg.value != null && trailer.gvwr != null) {
+    out.combined = tg.value + trailer.gvwr;
+    out.combinedProvisional = tg.provisional;
+    if (out.combined >= 26000) out.cdlRequired = true;
+  }
+  return out;
+}
+function isCdlA(driver) {
+  if (!driver) return false;
+  const cls = (driver.cls != null ? driver.cls : (String(driver.description || '').match(/License Class (\S+)/) || [])[1] || '').toUpperCase();
+  return cls.indexOf('A') === 0;
+}
+function cdlStatusForAssignment(a) {
+  if (!a || !a.cdlRequired) return null;
+  const driver = a.driverId ? assetById(a.driverId) : null;
+  return { required: true, satisfied: !!(driver && isCdlA(driver)), combined: a.combinedGvwr || null };
+}
+function cdlBadgeEl(a) {
+  const st = cdlStatusForAssignment(a);
+  if (!st) return null;
+  if (st.satisfied) return el('span', { class: 'cdl-badge ok' }, ['CDL-A ✓']);
+  return el('span', { class: 'cdl-badge req' }, ['CDL-A REQUIRED']);
+}
+
+// Overall current status for dashboard/list display (no specific date window in mind)
+function currentAssetStatus(asset) {
+  if (asset.kind === 'driver') {
+    if (asset.outOfService) return { code: 'oos', label: 'Unavailable' };
+  } else if (asset.outOfService) {
+    return { code: 'oos', label: 'Out of Service' };
+  }
+  const today = toISODate(todayDateOnly());
+  const bookings = assignmentsForAsset(asset.id, null);
+  const active = bookings.find(a => a.deployDate <= today && today <= a.returnDate);
+  if (active) return { code: 'deployed', label: asset.kind === 'driver' ? 'Assigned' : 'Deployed', booking: active };
+  const future = bookings.filter(a => a.deployDate > today).sort((a,b) => a.deployDate.localeCompare(b.deployDate))[0];
+  if (future) return { code: 'future', label: 'Future Booking', booking: future };
+  return { code: 'available', label: 'Available' };
+}
+
+// Status relative to a specific candidate date range (used while building/editing an assignment)
+function statusForCandidateWindow(asset, deployDate, returnDate, excludeAssignmentId) {
+  if (asset.outOfService) return { code: 'oos', label: 'OUT OF SERVICE', blocking: true };
+  const bookings = assignmentsForAsset(asset.id, excludeAssignmentId);
+  if (deployDate && returnDate) {
+    const conflict = bookings.find(a => overlapsISO(deployDate, returnDate, a.deployDate, a.returnDate));
+    if (conflict) {
+      return { code: 'conflict', label: 'BOOKED — ' + conflict.deploymentName + ' — Returns ' + fmtShort(conflict.returnDate), blocking: true, booking: conflict };
+    }
+    return { code: 'available', label: 'Available', blocking: false };
+  }
+  // no dates chosen yet: show current status as context, never blocking
+  const today = toISODate(todayDateOnly());
+  const active = bookings.find(a => a.deployDate <= today && today <= a.returnDate);
+  if (active) return { code: 'info', label: 'BOOKED — ' + active.deploymentName + ' — Returns ' + fmtShort(active.returnDate), blocking: false, booking: active };
+  const future = bookings.filter(a => a.deployDate > today).sort((a,b)=>a.deployDate.localeCompare(b.deployDate))[0];
+  if (future) return { code: 'info', label: 'BOOKED ' + fmtShort(future.deployDate) + ' — ' + future.deploymentName, blocking: false, booking: future };
+  return { code: 'available', label: 'Available', blocking: false };
+}
+
+function hardConflictsFor(asset, deployDate, returnDate, excludeAssignmentId) {
+  if (!asset) return [];
+  if (asset.outOfService) return [{ type: 'oos' }];
+  const bookings = assignmentsForAsset(asset.id, excludeAssignmentId);
+  return bookings.filter(a => overlapsISO(deployDate, returnDate, a.deployDate, a.returnDate)).map(b => ({ type: 'overlap', booking: b }));
+}
+
+// Back-to-back: gap of 0 or 1 day on either side, excluding true overlaps (those are hard stops already)
+function backToBackWarningsFor(asset, deployDate, returnDate, excludeAssignmentId) {
+  if (!asset || asset.outOfService) return [];
+  const bookings = assignmentsForAsset(asset.id, excludeAssignmentId);
+  const warns = [];
+  bookings.forEach(b => {
+    if (overlapsISO(deployDate, returnDate, b.deployDate, b.returnDate)) return; // real conflict, handled elsewhere
+    const gapAfterB = daysBetweenISO(b.returnDate, deployDate);   // b returns, then this deploys
+    const gapBeforeB = daysBetweenISO(returnDate, b.deployDate);  // this returns, then b deploys
+    if (gapAfterB >= 0 && gapAfterB <= 1) warns.push({ direction: 'after', gap: gapAfterB, booking: b });
+    else if (gapBeforeB >= 0 && gapBeforeB <= 1) warns.push({ direction: 'before', gap: gapBeforeB, booking: b });
+  });
+  return warns;
+}
+
+// Vehicles the Rolling Stock sheet marks "Staff" are personal daily
+// drivers, not dispatchable fleet — they're kept off the board entirely
+// (no dashboard listing, no dropdowns). They come back automatically the
+// moment the sheet's status changes to anything else.
+function isStaffAsset(a) { return String(a.sheetStatus || '').trim().toLowerCase() === 'staff'; }
+function assetsOfKind(kind) { return state.assets.filter(a => a.kind === kind && !isStaffAsset(a)).sort((a,b) => a.label.localeCompare(b.label, undefined, {numeric:true})); }
+
+/* =====================================================================
+   RENDER HELPERS
+   ===================================================================== */
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === 'class') e.className = attrs[k];
+    else if (k === 'html') e.innerHTML = attrs[k];
+    else if (k.startsWith('on') && typeof attrs[k] === 'function') e.addEventListener(k.slice(2), attrs[k]);
+    else if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+  }
+  (children || []).forEach(c => { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return e;
+}
+function icon(name, size) {
+  const s = size || 15;
+  const paths = {
+    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    truck: '<rect x="1" y="7" width="14" height="9" rx="1"/><path d="M15 10h4l3 3v3h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/>',
+    trailer: '<rect x="3" y="8" width="16" height="7" rx="1"/><path d="M19 11h2"/><circle cx="8" cy="17.5" r="1.6"/><circle cx="14" cy="17.5" r="1.6"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    x: '<path d="M18 6L6 18M6 6l12 12"/>',
+    check: '<path d="M20 6L9 17l-5-5"/>',
+    warn: '<path d="M12 2L1 21h22L12 2z"/><path d="M12 9v5M12 17.5v.01"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    schedule: '<path d="M3 5h18M3 12h18M3 19h11"/>',
+    chevronDown: '<path d="M6 9l6 6 6-6"/>',
+    download: '<path d="M12 3v12M6 9l6 6 6-6"/><path d="M4 21h16"/>',
+    refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>',
+  };
+  return '<svg class="icn" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(paths[name]||'')+'</svg>';
+}
+function pillHTML(status) {
+  const map = { available: 'available', future: 'future', deployed: 'deployed', oos: 'oos' };
+  const cls = map[status.code] || 'available';
+  return '<span class="pill ' + cls + '"><span class="dot"></span>' + status.label + '</span>';
+}
+
+/* =====================================================================
+   SEARCHABLE COMBO COMPONENT
+   getOptions(query) -> [{id, primary, secondary, badge, disabled, disabledReason, footnote}]
+   ===================================================================== */
+function mountCombo(container, opts) {
+  // opts: { value, placeholder, getOptions(query), onSelect(id|null), renderChosen(id) }
+  //
+  // Two race conditions live here and both are guarded:
+  //
+  // 1) Selecting an option calls onSelect, which (every caller here)
+  //    re-invokes mountCombo on this same container to reflect the new
+  //    value — a NEWER instance takes over mid-click. The ORIGINAL
+  //    instance's own trailing close()/paint() must become a no-op, or it
+  //    repaints last using its stale captured opts.value and the
+  //    just-made selection visually reverts to empty. A token on the
+  //    container marks which instance is current; every render path
+  //    checks it first.
+  // 2) Within ONE instance, paint() re-renders on every keystroke while
+  //    filtering. An outside-click listener used to be re-registered on
+  //    every paint() without removing the previous one — so after a few
+  //    keystrokes, several stale listeners were stacked on `document`,
+  //    each closing over an already-replaced `wrap` element. A real
+  //    mousedown on an option (which does NOT contain that old, detached
+  //    wrap) would make a stale listener fire and close the panel mid
+  //    mousedown — before the click event that follows ever reached the
+  //    option, silently swallowing the selection. Fixed by keeping exactly
+  //    one listener per instance, attached only while open, reading the
+  //    CURRENT wrap through a shared variable instead of a snapshot.
+  const myToken = {};
+  container._comboToken = myToken;
+  function isCurrent() { return container._comboToken === myToken; }
+  let open = false, query = '', hiIndex = -1, currentOptions = [];
+  let liveWrap = null;
+  let outsideAttached = false;
+
+  function outsideMousedown(ev) {
+    if (!isCurrent()) { document.removeEventListener('mousedown', outsideMousedown); outsideAttached = false; return; }
+    if (liveWrap && !liveWrap.contains(ev.target)) close();
+  }
+
+  function close() {
+    if (!isCurrent()) return;
+    open = false; query = ''; hiIndex = -1;
+    if (outsideAttached) { document.removeEventListener('mousedown', outsideMousedown); outsideAttached = false; }
+    paint();
+  }
+
+  // Shared by the click and Enter-key paths. A write-in option has to
+  // create its asset first (async — a db write when db is available) before
+  // it has an id to select, so this is async even though the plain-option
+  // path resolves immediately.
+  async function selectOption(o) {
+    if (o.disabled) return;
+    if (o.isWriteIn) {
+      const newId = await opts.onCreateWriteIn(o.writeInLabel);
+      if (newId) opts.onSelect(newId);
+    } else {
+      opts.onSelect(o.id);
+    }
+    close();
+  }
+
+  function paint() {
+    if (!isCurrent()) return;
+    container.innerHTML = '';
+    const wrap = el('div', { class: 'combo' });
+    const inputRow = el('div', { class: 'combo-input' + (open ? ' open' : '') });
+
+    if (opts.value && !open) {
+      const chosen = opts.renderChosen(opts.value);
+      inputRow.appendChild(el('span', { class: 'chosen-pill', style: 'flex:1; color:var(--ink); font-weight:600;' }, [chosen]));
+      const clearBtn = el('button', { class: 'clear-btn', type: 'button', 'aria-label': 'Clear selection', onclick: (e) => { e.stopPropagation(); opts.onSelect(null); } });
+      clearBtn.innerHTML = icon('x', 15);
+      inputRow.appendChild(clearBtn);
+      inputRow.addEventListener('click', () => { open = true; query=''; paint(); const inp = container.querySelector('input'); if (inp) inp.focus(); });
+    } else {
+      const input = el('input', {
+        type: 'text',
+        placeholder: opts.placeholder || 'Search…',
+        value: query,
+        oninput: (e) => { query = e.target.value; hiIndex = -1; paint(); const i = container.querySelector('input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = i.value.length; } },
+        onfocus: () => { if (!open) { open = true; paint(); } },
+        onkeydown: (e) => {
+          if (e.key === 'Escape') { close(); }
+          else if (e.key === 'ArrowDown') { e.preventDefault(); hiIndex = Math.min(hiIndex+1, currentOptions.length-1); paint(); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); hiIndex = Math.max(hiIndex-1, 0); paint(); }
+          else if (e.key === 'Enter') { e.preventDefault(); const o = currentOptions[hiIndex]; if (o && !o.disabled) selectOption(o); }
+        },
+      });
+      inputRow.appendChild(input);
+      if (!open) inputRow.addEventListener('click', () => { open = true; paint(); setTimeout(()=>{ const i = container.querySelector('input'); if (i) i.focus(); },0); });
+    }
+    wrap.appendChild(inputRow);
+
+    if (open) {
+      const panel = el('div', { class: 'combo-panel' });
+      currentOptions = opts.getOptions(query);
+      if (currentOptions.length === 0) {
+        panel.appendChild(el('div', { class: 'combo-empty' }, ['No available matches.']));
+      } else {
+        currentOptions.forEach((o, i) => {
+          const row = el('div', { class: 'combo-opt' + (o.disabled ? ' disabled' : '') + (i === hiIndex ? ' hi' : '') + (o.isWriteIn ? ' writein' : '') });
+          const left = el('div', { class: 'left' });
+          left.appendChild(el('div', { class: 'name' }, [o.primary]));
+          if (o.secondary) left.appendChild(el('div', { class: 'meta' }, [o.secondary]));
+          row.appendChild(left);
+          if (o.badge) row.appendChild(el('span', { class: 'badge' }, [o.badge]));
+          if (!o.disabled) {
+            row.addEventListener('click', () => { selectOption(o); });
+          }
+          panel.appendChild(row);
+        });
+      }
+      wrap.appendChild(panel);
+    }
+    container.appendChild(wrap);
+    liveWrap = wrap;
+    if (open && !outsideAttached) {
+      outsideAttached = true;
+      // Deferred one tick so the click that opened the combo isn't itself seen as "outside".
+      setTimeout(() => { if (isCurrent() && open) document.addEventListener('mousedown', outsideMousedown); }, 0);
+    }
+  }
+  paint();
+}
+
+/* Clickable vehicle filters for the scheduling form. Each filter matches
+   keywords in a unit's label + description straight from Rolling Stock, so
+   tagging follows the sheet's own wording (fix a description there and the
+   filters follow). OR semantics across clicked chips; none clicked = all
+   available vehicles are shown. */
+const VEHICLE_FILTERS = {
+  truck: [
+    { key: 'cargo',    label: 'Cargo',            re: /\bvan\b|sprinter|\bcargo\b/ },
+    { key: 'shortbed', label: 'Short Bed',        re: /short\s*(bed|box)/ },
+    { key: 'longbed',  label: 'Long Bed',         re: /long\s*(bed|box)/ },
+    { key: 'flatbed',  label: 'Flat Bed',         re: /flat\s*bed/ },
+    { key: 'pax',      label: 'Passengers > 4',   re: /\bvan\b|\bsuv\b|tahoe|acadia|motor home|crew\s*cab|\b[5-9][\s-]*(person|passenger|pax)\b/, not: /box/ },
+    { key: 'dually',   label: 'Dually',           re: /dually|\bdrw\b/ },
+    { key: 'boxtruck', label: 'Box Truck',        re: /box\s*truck/ },
+  ],
+  trailer: [
+    { key: 'shower',   label: 'Shower/Laundry',      re: /shower|laundry/ },
+    { key: 'electron', label: 'Electronic',          re: /electronic|electrionic/ },
+    { key: 'elecsup',  label: 'Electrical Support',  re: /electrical/ },
+    { key: 'chainsaw', label: 'Chainsaw',            re: /chain\s*saw/ },
+    { key: 'firerec',  label: 'Fire/Flood Recovery', re: /\bfire\b|flood|mud\s*-?out|ash\s*-?out|recovery/ },
+    { key: 'feeding',  label: 'Feeding',             re: /feeding|kitchen|cooking|\bfood\b|cambro/ },
+  ],
+};
+function assetMatchesFilter(asset, def) {
+  const text = ((asset.label || '') + ' ' + (asset.description || '')).toLowerCase();
+  return def.re.test(text) && !(def.not && def.not.test(text));
+}
+
+/* Build combo option list for an asset kind, aware of chosen dates + equipment approval */
+function comboOptionsFor(kind, query, ctx) {
+  let list = assetsOfKind(kind);
+  // Clicked filter chips narrow the list (OR across chips); none = show all.
+  if (ctx.filters && ctx.filters.size && VEHICLE_FILTERS[kind]) {
+    const active = VEHICLE_FILTERS[kind].filter(d => ctx.filters.has(d.key));
+    if (active.length) list = list.filter(a => active.some(d => assetMatchesFilter(a, d)));
+  }
+  // Gooseneck pairing: a gooseneck/fifth-wheel trailer only offers trucks
+  // documented gooseneck-capable (never on bumper capacity alone), ordered
+  // dually > 1-ton single-wheel > 3/4-ton, flatbeds first within a class.
+  // Symmetrically, a non-gooseneck-capable truck hides gooseneck trailers.
+  let gnOrder = null;
+  if (kind === 'truck' && ctx.selectedTrailerId) {
+    const tr = assetById(ctx.selectedTrailerId);
+    if (isGooseneckTrailer(tr)) {
+      list = list.filter(t => t.gooseneckCapable);
+      const CLASS_RANK = { drw: 0, srw1ton: 1, '3q': 2, hdplus: 3, light: 4 };
+      gnOrder = t => (CLASS_RANK[truckClassOf(t)] * 2) + (/flat\s*bed/i.test(t.description || '') ? 0 : 1);
+    }
+  }
+  if (kind === 'trailer' && ctx.selectedTruckId) {
+    const tk = assetById(ctx.selectedTruckId);
+    if (tk && tk.kind === 'truck' && !tk.gooseneckCapable) list = list.filter(tr => !isGooseneckTrailer(tr));
+  }
+  // CDL-A restricted assignment: only drivers on file as Class A.
+  if (kind === 'driver' && ctx.cdlRequired) list = list.filter(isCdlA);
+  const q = (query || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter(a =>
+      a.label.toLowerCase().includes(q) ||
+      (a.description || '').toLowerCase().includes(q) ||
+      (a.number || '').toLowerCase().includes(q)
+    );
+  }
+  const approvedSet = (kind === 'trailer' && ctx.equipmentId)
+    ? new Set((assetById(ctx.equipmentId) || {}).approvedTrailerIds || [])
+    : null;
+
+  const opts = list
+    .map(a => {
+      const st = statusForCandidateWindow(a, ctx.deployDate, ctx.returnDate, ctx.excludeAssignmentId);
+      let badge = null;
+      if (approvedSet) badge = approvedSet.has(a.id) ? 'Approved' : null;
+      return {
+        id: a.id,
+        primary: a.label,
+        secondary: assetSubtext(a),
+        badge,
+        disabled: st.blocking,
+        _approved: approvedSet ? approvedSet.has(a.id) : null,
+      };
+    })
+    // Only available resources are shown here — anything Out of Service, or
+    // booked over the dates chosen for this assignment, is left off the
+    // list entirely rather than shown disabled.
+    .filter(o => !o.disabled);
+
+  if (approvedSet) {
+    opts.sort((a,b) => (b._approved - a._approved) || a.primary.localeCompare(b.primary, undefined, {numeric:true}));
+  }
+  if (gnOrder) {
+    const rank = {};
+    list.forEach(a => { rank[a.id] = gnOrder(a); });
+    opts.sort((a,b) => (rank[a.id] - rank[b.id]) || a.primary.localeCompare(b.primary, undefined, {numeric:true}));
+    opts.forEach(o => { if (!o.badge) o.badge = 'GN capable'; });
+  }
+
+  // Write-in: if what's typed doesn't exactly match anything on file (found
+  // or not — an unavailable exact match still counts, so this never offers
+  // a duplicate of something merely booked elsewhere), offer to add it as a
+  // new asset rather than requiring everything to already be in Rolling
+  // Stock / Approved Drivers before it can be booked.
+  const trimmed = (query || '').trim();
+  // No driver write-ins on a CDL-A restricted assignment — an unknown CDL
+  // status never qualifies.
+  if (trimmed && !(kind === 'driver' && ctx.cdlRequired)) {
+    const existsExact = list.some(a => a.label.toLowerCase() === trimmed.toLowerCase())
+      // Checked against ALL assets of the kind — Staff vehicles included,
+      // even though they're hidden from the list — so typing a staff
+      // unit's number never creates a bookable duplicate of it.
+      || state.assets.some(a => a.kind === kind && a.label.toLowerCase() === trimmed.toLowerCase());
+    if (!existsExact) {
+      opts.push({
+        id: null, isWriteIn: true, writeInLabel: trimmed,
+        primary: 'Use "' + trimmed + '"',
+        secondary: 'Not on file yet — adds it as a new ' + KIND_LABELS[kind].toLowerCase(),
+        badge: null, disabled: false,
+      });
+    }
+  }
+  return opts;
+}
+
+// Vehicle/trailer/equipment rows read "# — Model — Comments" (drivers keep
+// their license-class line); description is the fallback for write-ins and
+// anything the sheet has no model/comments for.
+function assetSubtext(a) {
+  if (a.kind === 'driver') return a.description || '';
+  const mc = [a.model, a.comments].filter(Boolean).join(' — ');
+  return mc || a.description || '';
+}
+function chosenLabel(kind, id) {
+  const a = assetById(id);
+  if (!a) return '';
+  const sub = assetSubtext(a);
+  return a.label + (sub ? ' — ' + sub : '');
+}
+
+/* =====================================================================
+   VIEWS
+   ===================================================================== */
+function renderNav() {
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
+    { id: 'schedule', label: 'Schedule', icon: 'schedule' },
+    { id: 'log', label: 'Log', icon: 'clock' },
+  ];
+  const sidebar = el('div', { class: 'sidebar' });
+  const brand = el('div', { class: 'brand' });
+  const mark = el('div', { class: 'mark' }, ['DB']);
+  const nameWrap = el('div');
+  nameWrap.appendChild(el('div', { class: 'name' }, ['Dispatch Board']));
+  nameWrap.appendChild(el('div', { class: 'sub' }, ['Fleet Assignment & Scheduling']));
+  brand.appendChild(mark); brand.appendChild(nameWrap);
+  sidebar.appendChild(brand);
+
+  const nav = el('div', { class: 'nav' });
+  items.forEach(it => {
+    const btn = el('button', {
+      class: state.route === it.id || (it.id==='dashboard' && (state.route==='dashboard')) ? 'active' : '',
+      onclick: () => { state.route = it.id; state.editingId = null; render(); },
+    });
+    btn.innerHTML = icon(it.icon, 16) + '<span>' + it.label + '</span>';
+    nav.appendChild(btn);
+  });
+  const newBtn = el('button', {
+    class: 'cta',
+    onclick: () => { state.route = 'new'; state.editingId = null; render(); },
+  });
+  newBtn.innerHTML = icon('plus', 16) + '<span>New Assignment</span>';
+  nav.appendChild(newBtn);
+  sidebar.appendChild(nav);
+
+  const refreshBtn = el('button', { class: 'refresh-btn', type: 'button', 'aria-label': 'Refresh data' });
+  refreshBtn.innerHTML = icon('refresh', 15) + '<span>Refresh</span>';
+  refreshBtn.addEventListener('click', () => manualRefresh(refreshBtn));
+  sidebar.appendChild(refreshBtn);
+
+  const foot = el('div', { class: 'sidebar-foot', style: 'margin-top: 0;' });
+  foot.innerHTML = '<span class="sync-dot' + (state.db ? '' : ' off') + '"></span><span>' + (state.db ? 'Synced' : 'Local session only') + '</span>';
+  sidebar.appendChild(foot);
+
+  return sidebar;
+}
+
+function todayLabel() {
+  return todayDateOnly().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+/* ---------------- Dashboard ---------------- */
+const CAT_CHIP_CLASS = { DR: 'cat-dr', Rebuild: 'cat-rebuild', Other: 'cat-other' };
+
+function catBubble(category, count, contentEl, emptyText) {
+  const bubble = el('div', { class: 'cat-bubble ' + CAT_CHIP_CLASS[category] });
+  const head = el('div', { class: 'cat-bubble-head' });
+  const chip = el('span', { class: 'cat-chip ' + CAT_CHIP_CLASS[category] }, [category]);
+  head.appendChild(chip);
+  head.appendChild(el('span', { class: 'cat-bubble-count mono' }, [String(count)]));
+  bubble.appendChild(head);
+  if (count === 0) {
+    bubble.appendChild(el('div', { class: 'empty-note' }, [emptyText]));
+  } else {
+    bubble.appendChild(contentEl);
+  }
+  return bubble;
+}
+
+function renderDashboard() {
+  const wrap = el('div', { class: 'container' });
+  const head = el('div', { class: 'page-head' });
+  head.appendChild(el('h1', {}, ['Dashboard']));
+  const right = el('div', { style: 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;' });
+  const statusBtn = downloadButton('Fleet Status', () => downloadCSV('rolling-stock-status-' + toISODate(todayDateOnly()) + '.csv', buildFleetStatusCSV()));
+  if (statusBtn) right.appendChild(statusBtn);
+  const dlBtn = downloadButton('Download Schedule', () => downloadCSV('dispatch-schedule-' + toISODate(todayDateOnly()) + '.csv', buildScheduleCSV()));
+  if (dlBtn) right.appendChild(dlBtn);
+  right.appendChild(el('div', { class: 'today' }, [todayLabel()]));
+  head.appendChild(right);
+  wrap.appendChild(head);
+
+  // Live-sync indicator: when did statuses last come from the sheet itself?
+  if (state.rsSync.status === 'ok' && state.rsSync.at) {
+    wrap.appendChild(el('div', { class: 'src-note', style: 'margin: -10px 0 14px;' },
+      ['Rolling Stock statuses synced from the spreadsheet at ' + new Date(state.rsSync.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '. Press Refresh to sync again.']));
+  } else if (state.rsSync.status === 'error') {
+    wrap.appendChild(el('div', { class: 'src-note', style: 'margin: -10px 0 14px;' }, [state.rsSync.message]));
+  }
+
+  const today = toISODate(todayDateOnly());
+
+  // Status carried over from the Rolling Stock sheet's own STATUS column.
+  // A unit the sheet marks Assigned / Deployed / Out of Service is listed in
+  // its category even when no booking exists on this board — annotated so
+  // it's clear the status came from the sheet, not from a dispatch here.
+  const SHEET_NOTE = 'Status Provided By Rolling Stock Spreadsheet';
+  const VEHICLE_KINDS = ['truck', 'trailer', 'equipment'];
+  const KIND_WORD = { truck: 'Truck', trailer: 'Trailer', equipment: 'Equipment' };
+  function sheetStatusOf(a) { return a.sheetStatus || 'Available'; }
+  const sheetDeployedByCat = {}, sheetAssignedByCat = {};
+  CATEGORIES.forEach(cat => {
+    const vehicles = VEHICLE_KINDS.flatMap(k => assetsOfKind(k))
+      .filter(a => (a.category || 'Other') === cat && !a.outOfService && currentAssetStatus(a).code === 'available');
+    sheetDeployedByCat[cat] = vehicles.filter(a => sheetBucket(sheetStatusOf(a)) === 'deployed');
+    sheetAssignedByCat[cat] = vehicles.filter(a => sheetBucket(sheetStatusOf(a)) === 'assigned');
+  });
+
+  const allTrucks = assetsOfKind('truck');
+  const availableByCat = {}, trucksByCat = {};
+  CATEGORIES.forEach(cat => {
+    trucksByCat[cat] = allTrucks.filter(t => t.category === cat);
+    // A truck the Rolling Stock sheet marks Assigned/Deployed isn't offered
+    // as available even when it has no booking on this board.
+    availableByCat[cat] = trucksByCat[cat].filter(t => currentAssetStatus(t).code === 'available' && sheetBucket(sheetStatusOf(t)) === 'available');
+  });
+  const deployedByCat = {}, futureByCat = {};
+  CATEGORIES.forEach(cat => {
+    const catAssignments = state.assignments.filter(a => categoryForAssignment(a) === cat);
+    deployedByCat[cat] = catAssignments.filter(a => a.deployDate <= today && today <= a.returnDate)
+      .sort((a,b) => a.returnDate.localeCompare(b.returnDate));
+    futureByCat[cat] = catAssignments.filter(a => a.deployDate > today)
+      .sort((a,b) => a.deployDate.localeCompare(b.deployDate));
+  });
+  const totalAvailable = CATEGORIES.reduce((n,c) => n + availableByCat[c].length, 0);
+  const totalDeployed = CATEGORIES.reduce((n,c) => n + deployedByCat[c].length + sheetDeployedByCat[c].length, 0);
+  const totalFuture = CATEGORIES.reduce((n,c) => n + futureByCat[c].length + sheetAssignedByCat[c].length, 0);
+
+  // Rows for units whose non-available status comes from the sheet alone.
+  // The pill shows the sheet's own word (Staff, Assigned, Deployed, …).
+  function sheetStatusList(assets, pillClass) {
+    const listEl = el('div', { class: 'asset-list', style: 'margin-top: 10px; max-height: 260px;' });
+    assets.forEach(a => {
+      const row = el('div', { class: 'asset-row' });
+      const left = el('span', {}, [
+        el('span', { class: 'label' }, [a.label]),
+        document.createTextNode(a.description ? ' — ' + a.description : ''),
+        el('span', { class: 'src-note' }, [SHEET_NOTE]),
+      ]);
+      row.appendChild(left);
+      const right = el('span', { style: 'display: flex; align-items: center; gap: 10px; flex: none;' });
+      right.appendChild(el('span', { style: 'font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint);' }, [KIND_WORD[a.kind] || a.kind]));
+      right.appendChild(el('span', { class: 'pill ' + pillClass }, [el('span', { class: 'dot' }), sheetStatusOf(a)]));
+      row.appendChild(right);
+      listEl.appendChild(row);
+    });
+    return listEl;
+  }
+
+  // Out of service: every kind — trucks, trailers, and equipment.
+  const oosByCat = {};
+  CATEGORIES.forEach(cat => {
+    oosByCat[cat] = ['truck', 'trailer', 'equipment']
+      .flatMap(k => assetsOfKind(k).filter(a => a.category === cat && a.outOfService));
+  });
+  const totalOOS = CATEGORIES.reduce((n,c) => n + oosByCat[c].length, 0);
+
+  // stat strip (whole fleet)
+  const stats = el('div', { class: 'stats' });
+  stats.appendChild(statCard('Trucks Available', totalAvailable, 'accent'));
+  stats.appendChild(statCard('Currently Deployed', totalDeployed, 'dep'));
+  stats.appendChild(statCard('Scheduled', totalFuture, 'future'));
+  stats.appendChild(statCard('Out of Service', totalOOS, 'oos'));
+  wrap.appendChild(stats);
+
+  /* ---- Available Trucks: one search box, three category bubbles ---- */
+  const truckCard = el('div', { class: 'card' });
+  const th = el('div', { class: 'card-head' });
+  th.appendChild(el('h2', {}, ['Available Trucks']));
+  th.appendChild(el('span', { class: 'count' }, [totalAvailable + ' of ' + allTrucks.length]));
+  truckCard.appendChild(th);
+  const tb = el('div', { class: 'card-body' });
+  const searchWrap = el('div', { class: 'searchbox' });
+  searchWrap.innerHTML = icon('search', 15);
+  const input = el('input', { type: 'text', placeholder: 'Search trucks…' });
+  searchWrap.appendChild(input);
+  tb.appendChild(searchWrap);
+  const bubblesHost = el('div', { class: 'cat-bubbles' });
+  tb.appendChild(bubblesHost);
+  truckCard.appendChild(tb);
+  wrap.appendChild(truckCard);
+
+  function truckList(trucks) {
+    const listEl = el('div', { class: 'asset-list', style: 'margin-top: 0; max-height: 260px;' });
+    trucks.forEach(t => {
+      const row = el('div', { class: 'asset-row' });
+      row.appendChild(el('span', {}, [el('span', { class: 'label' }, [t.label]), document.createTextNode(t.description ? ' — ' + t.description : '')]));
+      row.appendChild(el('span', { class: 'pill available' }, [el('span', { class: 'dot' }), 'Available']));
+      listEl.appendChild(row);
+    });
+    return listEl;
+  }
+
+  function paintTruckBubbles(q) {
+    bubblesHost.innerHTML = '';
+    q = (q || '').trim().toLowerCase();
+    CATEGORIES.forEach(cat => {
+      const filtered = availableByCat[cat].filter(t => !q || t.label.toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q) || t.number.toLowerCase().includes(q));
+      const emptyText = q ? 'No available ' + cat + ' trucks match “' + q + '”.' : 'No ' + cat + ' trucks are currently available.';
+      bubblesHost.appendChild(catBubble(cat, filtered.length, truckList(filtered), emptyText));
+    });
+  }
+  input.addEventListener('input', () => paintTruckBubbles(input.value));
+  paintTruckBubbles('');
+
+  /* ---- Currently Deployed: three category bubbles ---- */
+  const depCard = el('div', { class: 'card' });
+  const dh = el('div', { class: 'card-head' });
+  dh.appendChild(el('h2', {}, ['Currently Deployed']));
+  dh.appendChild(el('span', { class: 'count' }, [String(totalDeployed)]));
+  depCard.appendChild(dh);
+  const db2 = el('div', { class: 'card-body' });
+  const depBubbles = el('div', { class: 'cat-bubbles' });
+  CATEGORIES.forEach(cat => {
+    const combined = el('div');
+    if (deployedByCat[cat].length) combined.appendChild(assignmentTable(deployedByCat[cat], { showSinceForReturn: true }));
+    if (sheetDeployedByCat[cat].length) combined.appendChild(sheetStatusList(sheetDeployedByCat[cat], 'deployed'));
+    depBubbles.appendChild(catBubble(cat, deployedByCat[cat].length + sheetDeployedByCat[cat].length,
+      combined, 'No ' + cat + ' assignments are deployed right now.'));
+  });
+  db2.appendChild(depBubbles);
+  depCard.appendChild(db2);
+  wrap.appendChild(depCard);
+
+  /* ---- Scheduled (future) deployments: three category bubbles.
+     A scheduled trip moves to Currently Deployed on its departure date —
+     the buckets are recomputed from today's date on every render, and the
+     midnight rollover timer below re-renders a tab left open overnight. ---- */
+  const futCard = el('div', { class: 'card' });
+  const fh = el('div', { class: 'card-head' });
+  fh.appendChild(el('h2', {}, ['Scheduled Deployments']));
+  fh.appendChild(el('span', { class: 'count' }, [String(totalFuture)]));
+  futCard.appendChild(fh);
+  const fb = el('div', { class: 'card-body' });
+  const futBubbles = el('div', { class: 'cat-bubbles' });
+  CATEGORIES.forEach(cat => {
+    const combined = el('div');
+    if (futureByCat[cat].length) combined.appendChild(assignmentTable(futureByCat[cat], { showDeployForReturn: true }));
+    if (sheetAssignedByCat[cat].length) combined.appendChild(sheetStatusList(sheetAssignedByCat[cat], 'future'));
+    futBubbles.appendChild(catBubble(cat, futureByCat[cat].length + sheetAssignedByCat[cat].length,
+      combined, 'No upcoming ' + cat + ' deployments are scheduled.'));
+  });
+  fb.appendChild(futBubbles);
+  futCard.appendChild(fb);
+  wrap.appendChild(futCard);
+
+  /* ---- Return Trips: auto-created with every booking; assign the
+     driver and trip date whenever they're known. ---- */
+  const rtRows = [];
+  state.assignments.filter(a => a.returnDate && a.returnDate >= today).forEach(a => {
+    returnTripsOf(a).forEach(t => { if (!t.checkedIn) rtRows.push({ a, t }); });
+  });
+  rtRows.sort((x, y) => (x.t.date || x.a.returnDate).localeCompare(y.t.date || y.a.returnDate));
+  const rtPending = rtRows.filter(r => !(r.t.driverId && r.t.date)).length;
+  const rtCard = el('div', { class: 'card' });
+  const rth = el('div', { class: 'card-head' });
+  rth.appendChild(el('h2', {}, ['Return Trips']));
+  rth.appendChild(el('span', { class: 'count' }, [rtPending ? rtPending + ' need scheduling' : String(rtRows.length)]));
+  rtCard.appendChild(rth);
+  const rtb = el('div', { class: 'card-body pad-0' });
+  if (rtRows.length === 0) {
+    rtb.appendChild(el('div', { class: 'empty-note', style: 'padding:18px 20px;' },
+      ['No active or upcoming deployments — return trips appear here automatically when something is booked.']));
+  } else {
+    const scroller = el('div', { class: 'table-scroll' });
+    const table = el('table', { class: 'sched' });
+    const thead = el('thead');
+    const trh = el('tr');
+    ['Deployment','Return Of','Truck','Deployment Return','Trip Driver','Trip Date','Status'].forEach(h => trh.appendChild(el('th', {}, [h])));
+    thead.appendChild(trh); table.appendChild(thead);
+    const tbody = el('tbody');
+    rtRows.forEach(r => {
+      const a = r.a, t = r.t;
+      const tr = el('tr', { onclick: () => { state.route = 'edit'; state.editingId = a.id; render(); } });
+      const rtDepTd = el('td', { class: 'deployment' }, [a.deploymentName]);
+      const rtCdlBadge = cdlBadgeEl(a);
+      if (rtCdlBadge) { rtDepTd.appendChild(document.createTextNode(' ')); rtDepTd.appendChild(rtCdlBadge); }
+      tr.appendChild(rtDepTd);
+      const ofTd = el('td');
+      ofTd.appendChild(document.createTextNode(returnTripScopeLabel(a, t)));
+      const remains = (t.scope === 'trailer' && a.trailerRemains) || (t.scope === 'equipment' && a.equipmentRemains);
+      if (remains) ofTd.appendChild(el('span', { class: 'src-note' }, ['Remains on scene']));
+      tr.appendChild(ofTd);
+      tr.appendChild(el('td', {}, [labelOf(a.truckId)]));
+      tr.appendChild(el('td', { class: 'mono' }, [fmtShort(a.returnDate)]));
+      tr.appendChild(el('td', {}, [t.driverId ? labelOf(t.driverId) : '—']));
+      tr.appendChild(el('td', { class: 'mono' }, [t.date ? fmtShort(t.date) : '—']));
+      const stTd = el('td');
+      let pillCls, pillLabel;
+      if (t.driverId && t.date) { pillCls = 'available'; pillLabel = 'Scheduled'; }
+      else if (t.driverId) { pillCls = 'deployed'; pillLabel = 'Needs Date'; }
+      else if (t.date) { pillCls = 'deployed'; pillLabel = 'Needs Driver'; }
+      else { pillCls = 'deployed'; pillLabel = 'Needs Driver & Date'; }
+      stTd.appendChild(el('span', { class: 'pill ' + pillCls }, [el('span', { class: 'dot' }), pillLabel]));
+      tr.appendChild(stTd);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    scroller.appendChild(table);
+    rtb.appendChild(scroller);
+  }
+  rtCard.appendChild(rtb);
+  wrap.appendChild(rtCard);
+
+  /* ---- Returns Due: on the day a return happens, check the returning
+     trailer/equipment back in as Available or Out of Service. ---- */
+  const dueRows = [];
+  state.assignments.forEach(a => {
+    returnTripsOf(a).forEach(t => {
+      if (t.checkedIn) return;
+      const dueDate = t.date || a.returnDate || '';
+      if (dueDate && dueDate <= today) dueRows.push({ a, t, dueDate });
+    });
+  });
+  dueRows.sort((x, y) => x.dueDate.localeCompare(y.dueDate));
+  const dueCard = el('div', { class: 'card' });
+  const dueH = el('div', { class: 'card-head' });
+  dueH.appendChild(el('h2', {}, ['Returns Due — Check In']));
+  dueH.appendChild(el('span', { class: 'count' }, [String(dueRows.length)]));
+  dueCard.appendChild(dueH);
+  const dueB = el('div', { class: 'card-body pad-0' });
+  if (dueRows.length === 0) {
+    dueB.appendChild(el('div', { class: 'empty-note', style: 'padding:18px 20px;' },
+      ['Nothing is due back today. When a return date arrives, its trailer or equipment appears here to be checked in as Available or Out of Service.']));
+  } else {
+    const scroller = el('div', { class: 'table-scroll' });
+    const table = el('table', { class: 'sched' });
+    const thead = el('thead');
+    const trh = el('tr');
+    ['Deployment','Returning','Due','Trip Driver','Check In As'].forEach(h => trh.appendChild(el('th', {}, [h])));
+    thead.appendChild(trh); table.appendChild(thead);
+    const tbody = el('tbody');
+    dueRows.forEach(r => {
+      const a = r.a, t = r.t;
+      const tr = el('tr', { style: 'cursor: default;' });
+      tr.appendChild(el('td', { class: 'deployment' }, [a.deploymentName]));
+      tr.appendChild(el('td', {}, [returnAssetsForScope(a, t.scope).map(labelOf).join(', ') || returnTripScopeLabel(a, t)]));
+      tr.appendChild(el('td', { class: 'mono' }, [fmtShort(r.dueDate)]));
+      tr.appendChild(el('td', {}, [t.driverId ? labelOf(t.driverId) : '—']));
+      const actTd = el('td');
+      const actWrap = el('span', { style: 'display: inline-flex; gap: 8px;' });
+      const okBtn = el('button', { class: 'btn secondary', type: 'button', style: 'padding: 5px 12px; font-size: 12.5px;' }, ['Available']);
+      okBtn.addEventListener('click', (e) => { e.stopPropagation(); checkInReturn(a, t.scope, 'Available'); });
+      const oosBtn = el('button', { class: 'btn danger', type: 'button', style: 'padding: 5px 12px; font-size: 12.5px;' }, ['Out of Service']);
+      oosBtn.addEventListener('click', (e) => { e.stopPropagation(); checkInReturn(a, t.scope, 'Out of Service'); });
+      actWrap.appendChild(okBtn); actWrap.appendChild(oosBtn);
+      actTd.appendChild(actWrap);
+      tr.appendChild(actTd);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    scroller.appendChild(table);
+    dueB.appendChild(scroller);
+  }
+  dueCard.appendChild(dueB);
+  wrap.appendChild(dueCard);
+
+  /* ---- Out of Service: trucks, trailers, and equipment ---- */
+  const oosCard = el('div', { class: 'card' });
+  const oh = el('div', { class: 'card-head' });
+  oh.appendChild(el('h2', {}, ['Out of Service']));
+  oh.appendChild(el('span', { class: 'count' }, [String(totalOOS)]));
+  oosCard.appendChild(oh);
+  const ob = el('div', { class: 'card-body' });
+  const oosBubbles = el('div', { class: 'cat-bubbles' });
+  CATEGORIES.forEach(cat => {
+    const list = el('div', { class: 'asset-list', style: 'margin-top: 0; max-height: 300px;' });
+    oosByCat[cat].forEach(a => {
+      const row = el('div', { class: 'asset-row' });
+      const leftBits = [el('span', { class: 'label' }, [a.label]), document.createTextNode(a.description ? ' — ' + a.description : '')];
+      if (!a.writeIn && a.statusSource !== 'board') leftBits.push(el('span', { class: 'src-note' }, [SHEET_NOTE]));
+      else if (a.statusSource === 'board') leftBits.push(el('span', { class: 'src-note' }, ['Checked in Out of Service on this board']));
+      row.appendChild(el('span', {}, leftBits));
+      const right = el('span', { style: 'display: flex; align-items: center; gap: 10px; flex: none;' });
+      right.appendChild(el('span', { style: 'font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint);' }, [KIND_WORD[a.kind] || a.kind]));
+      right.appendChild(el('span', { class: 'pill oos' }, [el('span', { class: 'dot' }), 'Out of Service']));
+      row.appendChild(right);
+      list.appendChild(row);
+    });
+    oosBubbles.appendChild(catBubble(cat, oosByCat[cat].length, list, 'No ' + cat + ' units are out of service.'));
+  });
+  ob.appendChild(oosBubbles);
+  oosCard.appendChild(ob);
+  wrap.appendChild(oosCard);
+
+  return wrap;
+}
+
+function statCard(label, value, cls) {
+  const c = el('div', { class: 'stat' + (cls ? ' ' + cls : '') });
+  c.appendChild(el('div', { class: 'label' }, [label]));
+  c.appendChild(el('div', { class: 'value mono' }, [String(value)]));
+  return c;
+}
+
+// An assignment's scheduling category: Rebuild wins if ANY vehicle in the
+// booking is a Rebuild item (the rebuild trailers are the defining marker —
+// Rebuild owns no trucks, so a rebuild run always borrows a DR/Other truck
+// and a truck-first rule would never say Rebuild). Otherwise it follows the
+// truck, then trailer, then equipment. Falls back to Other so nothing goes
+// unlisted.
+function categoryForAssignment(a) {
+  const assets = [a.truckId, a.trailerId, a.equipmentId].filter(Boolean).map(assetById).filter(Boolean);
+  if (assets.some(x => x.category === 'Rebuild')) return 'Rebuild';
+  for (const x of assets) { if (x.category) return x.category; }
+  return 'Other';
+}
+
+function hasB2BFlag(assignment) {
+  const ids = [assignment.trailerId, assignment.truckId, assignment.equipmentId, assignment.driverId].filter(Boolean);
+  for (const id of ids) {
+    const asset = assetById(id);
+    if (!asset) continue;
+    const warns = backToBackWarningsFor(asset, assignment.deployDate, assignment.returnDate, assignment.id);
+    if (warns.length) return true;
+  }
+  return false;
+}
+
+function sectionTable(title, rows, opts) {
+  opts = opts || {};
+  const card = el('div', { class: 'card' });
+  const head = el('div', { class: 'card-head' });
+  head.appendChild(el('h2', {}, [title]));
+  head.appendChild(el('span', { class: 'count' }, [String(rows.length)]));
+  card.appendChild(head);
+  const body = el('div', { class: 'card-body pad-0' });
+  if (rows.length === 0) {
+    body.appendChild(el('div', { class: 'empty-note', style: 'padding:18px 20px;' }, ['Nothing here right now.']));
+    card.appendChild(body);
+    return card;
+  }
+  body.appendChild(assignmentTable(rows, opts));
+  card.appendChild(body);
+  return card;
+}
+
+// Bare assignment table (no card wrapper) — shared by the Schedule page's
+// full-width cards and the dashboard's per-category bubbles.
+function assignmentTable(rows, opts) {
+  opts = opts || {};
+  const scroller = el('div', { class: 'table-scroll' });
+  const table = el('table', { class: 'sched' });
+  const thead = el('thead');
+  const trh = el('tr');
+  ['Deployment','Trailer','Truck','Equipment','Driver','Return','Notes'].forEach(h => trh.appendChild(el('th', {}, [h])));
+  thead.appendChild(trh); table.appendChild(thead);
+  const tbody = el('tbody');
+  rows.forEach(a => {
+    const tr = el('tr', { onclick: () => { state.route = 'edit'; state.editingId = a.id; render(); } });
+    const trailer = assetById(a.trailerId), truck = assetById(a.truckId), equip = a.equipmentId ? assetById(a.equipmentId) : null, driver = assetById(a.driverId);
+    const b2b = hasB2BFlag(a);
+
+    const depCell = el('td', { class: 'deployment' }, [a.deploymentName]);
+    if (b2b) {
+      const flag = document.createElement('span');
+      flag.className = 'b2b-flag';
+      flag.innerHTML = icon('warn', 12) + 'B2B';
+      depCell.appendChild(flag);
+    }
+    // CDL-A designation never disappears — it flips to "satisfied".
+    const cdlBadge = cdlBadgeEl(a);
+    if (cdlBadge) { depCell.appendChild(document.createTextNode(' ')); depCell.appendChild(cdlBadge); }
+    tr.appendChild(depCell);
+    tr.appendChild(el('td', {}, [trailer ? trailer.label : '—']));
+    tr.appendChild(el('td', {}, [truck ? truck.label : '—']));
+    tr.appendChild(el('td', {}, [equip ? equip.label : '—']));
+    tr.appendChild(el('td', {}, [driver ? driver.label : '—']));
+
+    const retTd = el('td', { class: 'mono' }, [fmtShort(a.returnDate)]);
+    if (opts.showSinceForReturn) retTd.appendChild(el('span', { class: 'sub' }, ['since ' + fmtShort(a.deployDate)]));
+    if (opts.showDeployForReturn) retTd.appendChild(el('span', { class: 'sub' }, ['departs ' + fmtShort(a.deployDate)]));
+    tr.appendChild(retTd);
+
+    tr.appendChild(el('td', { class: 'notes' }, [a.notes || '—']));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  scroller.appendChild(table);
+  return scroller;
+}
+
+/* ---------------- Schedule ---------------- */
+function renderSchedule() {
+  const wrap = el('div', { class: 'container' });
+  const head = el('div', { class: 'page-head' });
+  head.appendChild(el('h1', {}, ['Schedule']));
+  const right = el('div', { style: 'display:flex; align-items:center; gap:14px;' });
+  const dlBtn = downloadButton('Download Schedule', () => downloadCSV('dispatch-schedule-' + toISODate(todayDateOnly()) + '.csv', buildScheduleCSV()));
+  if (dlBtn) right.appendChild(dlBtn);
+  right.appendChild(el('div', { class: 'today' }, [todayLabel()]));
+  head.appendChild(right);
+  wrap.appendChild(head);
+
+  const today = toISODate(todayDateOnly());
+  const deployedNow = state.assignments.filter(a => a.deployDate <= today && today <= a.returnDate).sort((a,b)=>a.returnDate.localeCompare(b.returnDate));
+  const upcoming = state.assignments.filter(a => a.deployDate > today).sort((a,b)=>a.deployDate.localeCompare(b.deployDate));
+
+  wrap.appendChild(sectionTable('Deployed Now', deployedNow, { showSinceForReturn: true }));
+  wrap.appendChild(sectionTable('Scheduled Next', upcoming, { showDeployForReturn: true }));
+
+  return wrap;
+}
+
+/* ---------------- Booking log ---------------- */
+function renderLog() {
+  const wrap = el('div', { class: 'container' });
+  const head = el('div', { class: 'page-head' });
+  head.appendChild(el('h1', {}, ['Booking Log']));
+  const right = el('div', { style: 'display:flex; align-items:center; gap:14px;' });
+  if (state.log.length) {
+    const dlBtn = downloadButton('Download Log', () => downloadCSV('booking-log-' + toISODate(todayDateOnly()) + '.csv', buildLogCSV()));
+    if (dlBtn) right.appendChild(dlBtn);
+  }
+  right.appendChild(el('div', { class: 'today' }, [todayLabel()]));
+  head.appendChild(right);
+  wrap.appendChild(head);
+
+  const card = el('div', { class: 'card' });
+  const ch = el('div', { class: 'card-head' });
+  ch.appendChild(el('h2', {}, ['All bookings & cancellations']));
+  ch.appendChild(el('span', { class: 'count' }, [String(state.log.length)]));
+  card.appendChild(ch);
+  const body = el('div', { class: 'card-body pad-0' });
+
+  if (state.log.length === 0) {
+    body.appendChild(el('div', { class: 'empty-note', style: 'padding:18px 20px;' }, ['No booking activity yet. Entries appear here whenever an assignment is booked, updated, or canceled.']));
+    card.appendChild(body);
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  const scroller = el('div', { class: 'table-scroll' });
+  const table = el('table', { class: 'sched' });
+  const thead = el('thead');
+  const trh = el('tr');
+  ['When','Action','Deployment','Trailer','Truck','Equipment','Driver','Departure','Return'].forEach(h => trh.appendChild(el('th', {}, [h])));
+  thead.appendChild(trh); table.appendChild(thead);
+  const tbody = el('tbody');
+  const ACTION_PILL = { Booked: 'available', Updated: 'future', Canceled: 'oos', 'Return Scheduled': 'future', Returned: 'available' };
+  state.log.forEach(e => {
+    const tr = el('tr', { style: 'cursor: default;' });
+    const when = new Date(e.at);
+    const whenTd = el('td', { class: 'mono' }, [when.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })]);
+    whenTd.appendChild(el('span', { class: 'sub' }, [when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })]));
+    tr.appendChild(whenTd);
+    const actTd = el('td');
+    actTd.appendChild(el('span', { class: 'pill ' + (ACTION_PILL[e.action] || 'future') }, [el('span', { class: 'dot' }), e.action]));
+    tr.appendChild(actTd);
+    tr.appendChild(el('td', { class: 'deployment' }, [e.deploymentName || '—']));
+    tr.appendChild(el('td', {}, [e.trailer || '—']));
+    tr.appendChild(el('td', {}, [e.truck || '—']));
+    tr.appendChild(el('td', {}, [e.equipment || '—']));
+    tr.appendChild(el('td', {}, [e.driver || '—']));
+    tr.appendChild(el('td', { class: 'mono' }, [fmtShort(e.deployDate)]));
+    tr.appendChild(el('td', { class: 'mono' }, [fmtShort(e.returnDate)]));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  scroller.appendChild(table);
+  body.appendChild(scroller);
+  card.appendChild(body);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+/* ---------------- Assignment form (New + Edit) ---------------- */
+function blankRT() { return { all: { driverId: null, date: '' }, trailer: { driverId: null, date: '' }, equipment: { driverId: null, date: '' } }; }
+function blankBlock() {
+  return { key: uid('blk'), trailerId: null, truckId: null, equipmentId: null, driverId: null, deployDate: toISODate(todayDateOnly()), returnDate: '', notes: '', trailerRemains: false, equipmentRemains: false, rt: blankRT(), loadedWeight: null, _cdlWarned: '' };
+}
+
+function renderAssignmentForm(mode) {
+  const isEdit = mode === 'edit';
+  const existing = isEdit ? state.assignments.find(a => a.id === state.editingId) : null;
+  if (isEdit && !existing) {
+    const wrap = el('div', { class: 'container' });
+    wrap.appendChild(el('div', { class: 'card' }, [el('div', { class: 'card-body' }, ['That assignment no longer exists.'])]));
+    return wrap;
+  }
+
+  const formState = {
+    deploymentName: isEdit ? existing.deploymentName : '',
+    blocks: isEdit ? [{
+      key: existing.id, trailerId: existing.trailerId, truckId: existing.truckId, equipmentId: existing.equipmentId,
+      driverId: existing.driverId, deployDate: existing.deployDate, returnDate: existing.returnDate, notes: existing.notes || '',
+      trailerRemains: !!existing.trailerRemains, equipmentRemains: !!existing.equipmentRemains,
+      loadedWeight: existing.loadedWeight || null, _cdlWarned: '',
+      rt: (function () {
+        const rt = blankRT();
+        returnTripsOf(existing).forEach(t => { if (rt[t.scope]) rt[t.scope] = { driverId: t.driverId || null, date: t.date || '' }; });
+        return rt;
+      })(),
+    }] : [blankBlock()],
+    deploymentId: isEdit ? existing.deploymentId : uid('dep'),
+  };
+
+  const wrap = el('div', { class: 'container' });
+  const head = el('div', { class: 'page-head' });
+  head.appendChild(el('h1', {}, [isEdit ? 'Edit Assignment' : 'New Assignment']));
+  wrap.appendChild(head);
+
+  const errorHost = el('div');
+  wrap.appendChild(errorHost);
+
+  const card = el('div', { class: 'card' });
+  const body = el('div', { class: 'card-body' });
+
+  // Deployment name
+  const depField = el('div', { class: 'field' });
+  depField.appendChild(el('label', {}, ['Deployment']));
+  const depInput = el('input', { type: 'text', placeholder: 'e.g. Ross Fire, Illinois Response', value: formState.deploymentName });
+  depInput.addEventListener('input', () => { formState.deploymentName = depInput.value; });
+  depField.appendChild(depInput);
+  body.appendChild(depField);
+
+  const blocksHost = el('div');
+  body.appendChild(blocksHost);
+
+  function paintBlocks() {
+    blocksHost.innerHTML = '';
+    formState.blocks.forEach((blk, idx) => blocksHost.appendChild(renderBlock(blk, idx)));
+  }
+
+  function renderBlock(blk, idx) {
+    const b = el('div', { class: 'assign-block' });
+    const bh = el('div', { class: 'assign-block-head' });
+    bh.appendChild(el('div', { class: 'tag' }, [formState.blocks.length > 1 ? ('Assignment ' + (idx+1)) : 'Assignment']));
+    if (formState.blocks.length > 1) {
+      const rm = el('button', { class: 'btn ghost', type: 'button', onclick: () => { formState.blocks.splice(idx,1); paintBlocks(); } });
+      rm.innerHTML = icon('x', 14) + '<span>Remove</span>';
+      bh.appendChild(rm);
+    }
+    b.appendChild(bh);
+
+    const g2 = el('div', { class: 'grid-2' });
+
+    // Clicked filter chips per field (this assignment block only).
+    const filterSel = { trailer: new Set(), truck: new Set() };
+    function filterChips(kind) {
+      const row = el('div', { class: 'filter-chips' });
+      VEHICLE_FILTERS[kind].forEach(d => {
+        const chip = el('button', { class: 'fchip', type: 'button', 'aria-pressed': 'false' }, [d.label]);
+        chip.addEventListener('click', () => {
+          if (filterSel[kind].has(d.key)) filterSel[kind].delete(d.key);
+          else filterSel[kind].add(d.key);
+          chip.classList.toggle('on');
+          chip.setAttribute('aria-pressed', chip.classList.contains('on') ? 'true' : 'false');
+          paintCombos(); // remount so the dropdown reflects the filter
+        });
+        row.appendChild(chip);
+      });
+      return row;
+    }
+
+    // Trailer combo
+    const trailerField = el('div', { class: 'field' });
+    trailerField.appendChild(el('label', {}, ['Trailer']));
+    trailerField.appendChild(filterChips('trailer'));
+    const trailerHost = el('div', { 'data-field': 'trailer' });
+    trailerField.appendChild(trailerHost);
+    const trailerRemainsWrap = el('label', { class: 'remain-check' });
+    const trailerRemainsCb = el('input', { type: 'checkbox' });
+    trailerRemainsCb.checked = !!blk.trailerRemains;
+    trailerRemainsCb.addEventListener('change', () => { blk.trailerRemains = trailerRemainsCb.checked; paintReturnTrips(); });
+    trailerRemainsWrap.appendChild(trailerRemainsCb);
+    trailerRemainsWrap.appendChild(document.createTextNode('Trailer remains on scene'));
+    trailerField.appendChild(trailerRemainsWrap);
+    g2.appendChild(trailerField);
+
+    // Truck combo
+    const truckField = el('div', { class: 'field' });
+    truckField.appendChild(el('label', {}, ['Truck']));
+    truckField.appendChild(filterChips('truck'));
+    const truckHost = el('div', { 'data-field': 'truck' });
+    truckField.appendChild(truckHost);
+    g2.appendChild(truckField);
+    b.appendChild(g2);
+
+    // Tow compatibility + CDL-A panel: appears once a trailer and truck
+    // are both chosen.
+    const compatHost = el('div', { 'data-compat': '1' });
+    b.appendChild(compatHost);
+
+    function paintCompat() {
+      compatHost.innerHTML = '';
+      const trailer = blk.trailerId ? assetById(blk.trailerId) : null;
+      const truck = blk.truckId ? assetById(blk.truckId) : null;
+      if (!trailer || !truck) return;
+      const c = blockCompat();
+      const box = el('div', { class: 'compat ' + c.status });
+      const HEAD = { green: 'GREEN — COMPATIBLE', yellow: 'YELLOW — VERIFICATION REQUIRED', red: 'RED — INCOMPATIBLE' };
+      box.appendChild(el('b', {}, [HEAD[c.status] || '']));
+      c.reasons.forEach(r => box.appendChild(el('span', { class: 'sub' }, [r])));
+      if (c.cap.value != null && c.weight.value != null) {
+        box.appendChild(el('span', { class: 'sub' }, [
+          'Tow reserve: ' + fmtLb(c.reserve) + ' (' + truck.label + ' capacity ' + fmtLb(c.cap.value) +
+          (c.cap.source === 'verified' ? ' verified' : ' TXM ' + truckClassWord(truckClassOf(truck)) + ' default') +
+          ' − ' + trailer.label + ' ' + fmtLb(c.weight.value) + (c.weight.source === 'entered' ? ' actual loaded' : ' GVWR') + ')']));
+      }
+      if (c.combined != null) {
+        box.appendChild(el('span', { class: 'sub' }, [
+          'Combination rated weight: ' + fmtLb(truckGvwrOf(truck).value) + ' + ' + fmtLb(trailer.gvwr) + ' = ' + fmtLb(c.combined) +
+          (c.combinedProvisional ? ' (truck GVWR estimated by class — enter the verified GVWR in Rolling Stock)' : '') +
+          (c.cdlRequired ? ' — CDL-A REQUIRED' : '')]));
+      }
+      // Actual loaded trailer weight (empty + equipment + attachments +
+      // fuel + cargo) — overrides GVWR when entered.
+      const wtWrap = el('span', { class: 'setcap' });
+      wtWrap.appendChild(document.createTextNode('Actual loaded trailer weight:'));
+      const wtInput = el('input', { type: 'number', min: '0', step: '50', placeholder: trailer.gvwr ? String(trailer.gvwr) : 'lb', value: blk.loadedWeight || '' });
+      wtInput.addEventListener('change', () => { blk.loadedWeight = parseInt(wtInput.value, 10) || null; paintCompat(); });
+      wtWrap.appendChild(wtInput);
+      wtWrap.appendChild(document.createTextNode('lb'));
+      box.appendChild(wtWrap);
+      // Fleet-manager verified tow capacity replaces the class default.
+      if (c.cap.source !== 'verified') {
+        const capWrap = el('span', { class: 'setcap' });
+        capWrap.appendChild(document.createTextNode('Verified tow capacity for ' + truck.label + ':'));
+        const capInput = el('input', { type: 'number', min: '0', step: '100', placeholder: 'lb' });
+        const capBtn = el('button', { class: 'btn secondary', type: 'button' }, ['Save']);
+        capBtn.addEventListener('click', async () => {
+          const v = parseInt(capInput.value, 10);
+          if (!v) return;
+          truck.towCapacity = v;
+          truck.towCapacitySource = 'verified';
+          if (state.db) { try { await state.db.doc('assets/' + truck.id).set(truck); } catch (e) {} }
+          showToast(truck.label + ' verified tow capacity set to ' + fmtLb(v) + '.');
+          paintCompat();
+        });
+        capWrap.appendChild(capInput); capWrap.appendChild(document.createTextNode('lb'));
+        capWrap.appendChild(capBtn);
+        box.appendChild(capWrap);
+      }
+      compatHost.appendChild(box);
+      // CDL-A pop-up: fires once per truck+trailer pairing, before driver
+      // selection, with no dismiss-and-continue option.
+      if (c.cdlRequired) {
+        const key = blk.trailerId + '|' + blk.truckId;
+        if (blk._cdlWarned !== key) {
+          blk._cdlWarned = key;
+          showCdlModal(truck, trailer, c);
+        }
+      }
+    }
+
+    const g2b = el('div', { class: 'grid-2' });
+    // Equipment combo (optional)
+    const equipField = el('div', { class: 'field' });
+    equipField.appendChild(el('label', {}, ['Equipment ', el('span', { class: 'hint' }, ['(optional)'])]));
+    const equipHost = el('div', { 'data-field': 'equipment' });
+    equipField.appendChild(equipHost);
+    const equipRemainsWrap = el('label', { class: 'remain-check' });
+    const equipRemainsCb = el('input', { type: 'checkbox' });
+    equipRemainsCb.checked = !!blk.equipmentRemains;
+    equipRemainsCb.addEventListener('change', () => { blk.equipmentRemains = equipRemainsCb.checked; paintReturnTrips(); });
+    equipRemainsWrap.appendChild(equipRemainsCb);
+    equipRemainsWrap.appendChild(document.createTextNode('Equipment remains on scene'));
+    equipField.appendChild(equipRemainsWrap);
+    g2b.appendChild(equipField);
+
+    // Driver combo
+    const driverField = el('div', { class: 'field' });
+    const driverLabel = el('label', {}, ['Driver']);
+    driverField.appendChild(driverLabel);
+    const driverHost = el('div', { 'data-field': 'driver' });
+    driverField.appendChild(driverHost);
+    const driverNote = el('div', { class: 'hint', style: 'font-size: 12px; color: var(--oos-fg); margin-top: 6px; display: none;' });
+    driverField.appendChild(driverNote);
+    g2b.appendChild(driverField);
+    b.appendChild(g2b);
+
+    const g3 = el('div', { class: 'grid-2' });
+    const deployField = el('div', { class: 'field' });
+    deployField.appendChild(el('label', {}, ['Departure Date']));
+    const deployInput = el('input', { type: 'date', value: blk.deployDate || '' });
+    deployInput.addEventListener('change', () => { blk.deployDate = deployInput.value; paintCombos(); });
+    deployField.appendChild(deployInput);
+    g3.appendChild(deployField);
+
+    const returnField = el('div', { class: 'field' });
+    returnField.appendChild(el('label', {}, ['Return']));
+    const returnInput = el('input', { type: 'date', value: blk.returnDate || '' });
+    returnInput.addEventListener('change', () => { blk.returnDate = returnInput.value; paintCombos(); });
+    returnField.appendChild(returnInput);
+    g3.appendChild(returnField);
+    b.appendChild(g3);
+
+    // Return trips: auto-created with every booking. Checking "remains on
+    // scene" on the trailer or equipment splits the single return into two
+    // separate returns, each with its own driver and date — all assignable
+    // later from the dashboard's Return Trips section.
+    const rtHead = el('div', { class: 'assign-block-head', style: 'margin-top: 4px;' });
+    rtHead.appendChild(el('div', { class: 'tag' }, ['Return Trips']));
+    b.appendChild(rtHead);
+    b.appendChild(el('div', { class: 'hint', style: 'font-size: 12px; color: var(--ink-faint); margin: -2px 0 8px;' },
+      ['Scheduled automatically with this booking. Check "remains on scene" above to split the trailer and equipment into two separate returns. Drivers and dates can be assigned now or later.']));
+    const rtHost = el('div');
+    b.appendChild(rtHost);
+
+    function paintReturnTrips() {
+      rtHost.innerHTML = '';
+      const scopes = activeReturnScopes(blk);
+      scopes.forEach(scope => {
+        const name = scope === 'all' ? 'Return Trip'
+          : scope === 'trailer' ? 'Trailer Return' + (blk.trailerId ? ' — ' + labelOf(blk.trailerId) : '')
+          : 'Equipment Return' + (blk.equipmentId ? ' — ' + labelOf(blk.equipmentId) : '');
+        const g = el('div', { class: 'grid-2' });
+        const dField = el('div', { class: 'field' });
+        dField.appendChild(el('label', {}, [name + ' Driver ', el('span', { class: 'hint' }, ['(assign later if unknown)'])]));
+        const dHost = el('div', { 'data-field': 'returnDriver-' + scope });
+        dField.appendChild(dHost);
+        g.appendChild(dField);
+        const dateField = el('div', { class: 'field' });
+        dateField.appendChild(el('label', {}, [name + ' Date ', el('span', { class: 'hint' }, ['(assign later if unknown)'])]));
+        const dateInput = el('input', { type: 'date', value: blk.rt[scope].date || '' });
+        dateInput.addEventListener('change', () => { blk.rt[scope].date = dateInput.value; paintReturnTrips(); });
+        dateField.appendChild(dateInput);
+        g.appendChild(dateField);
+        rtHost.appendChild(g);
+        // Availability is judged against this trip's date alone (a one-day
+        // window); this assignment itself is excluded so the outbound
+        // driver can also drive a return.
+        // Towing the trailer home is the same combination — the CDL-A
+        // restriction applies to the return driver too (equipment-only
+        // returns ride on their own transport and are exempt).
+        const rtCdl = scope !== 'equipment' && blockCompat().cdlRequired;
+        mountCombo(dHost, {
+          value: blk.rt[scope].driverId,
+          placeholder: rtCdl ? 'Search CDL-A drivers…' : 'Search driver…',
+          getOptions: (q) => comboOptionsFor('driver', q, {
+            deployDate: blk.rt[scope].date || null, returnDate: blk.rt[scope].date || null,
+            equipmentId: null, excludeAssignmentId: isEdit ? existing.id : null, cdlRequired: rtCdl,
+          }),
+          renderChosen: (id) => chosenLabel('driver', id),
+          onSelect: (id) => { blk.rt[scope].driverId = id; paintReturnTrips(); },
+          onCreateWriteIn: (label) => createWriteInAsset('driver', label),
+        });
+      });
+    }
+
+    const notesField = el('div', { class: 'field', style: 'margin-bottom:6px;' });
+    notesField.appendChild(el('label', {}, ['Notes']));
+    const notesInput = el('textarea', { placeholder: 'Optional' }, [blk.notes || '']);
+    notesInput.value = blk.notes || '';
+    notesInput.addEventListener('input', () => { blk.notes = notesInput.value; });
+    notesField.appendChild(notesInput);
+    b.appendChild(notesField);
+
+    function ctx() {
+      return {
+        deployDate: blk.deployDate, returnDate: blk.returnDate, equipmentId: blk.equipmentId,
+        excludeAssignmentId: isEdit ? existing.id : null,
+        selectedTrailerId: blk.trailerId, selectedTruckId: blk.truckId,
+      };
+    }
+    function blockCompat() {
+      return towCompatFor(blk.trailerId ? assetById(blk.trailerId) : null, blk.truckId ? assetById(blk.truckId) : null, blk.loadedWeight);
+    }
+
+    function paintCombos() {
+      mountCombo(trailerHost, {
+        value: blk.trailerId,
+        placeholder: 'Search trailer number…',
+        getOptions: (q) => comboOptionsFor('trailer', q, Object.assign(ctx(), { filters: filterSel.trailer })),
+        renderChosen: (id) => chosenLabel('trailer', id),
+        onSelect: (id) => { blk.trailerId = id; paintCombos(); },
+        onCreateWriteIn: (label) => createWriteInAsset('trailer', label),
+      });
+      mountCombo(truckHost, {
+        value: blk.truckId,
+        placeholder: 'Search truck number…',
+        getOptions: (q) => comboOptionsFor('truck', q, Object.assign(ctx(), { filters: filterSel.truck })),
+        renderChosen: (id) => chosenLabel('truck', id),
+        onSelect: (id) => { blk.truckId = id; paintCombos(); },
+        onCreateWriteIn: (label) => createWriteInAsset('truck', label),
+      });
+      mountCombo(equipHost, {
+        value: blk.equipmentId,
+        placeholder: 'Search equipment (optional)…',
+        getOptions: (q) => comboOptionsFor('equipment', q, ctx()),
+        renderChosen: (id) => chosenLabel('equipment', id),
+        onSelect: (id) => { blk.equipmentId = id; paintCombos(); },
+        onCreateWriteIn: (label) => createWriteInAsset('equipment', label),
+      });
+      const cdl = blockCompat().cdlRequired;
+      driverLabel.innerHTML = '';
+      if (cdl) {
+        driverLabel.appendChild(document.createTextNode('Select CDL-A Driver '));
+        driverLabel.appendChild(el('span', { class: 'cdl-badge req' }, ['CDL-A REQUIRED']));
+      } else {
+        driverLabel.textContent = 'Driver';
+      }
+      mountCombo(driverHost, {
+        value: blk.driverId,
+        placeholder: cdl ? 'Search CDL-A drivers…' : 'Search driver…',
+        getOptions: (q) => comboOptionsFor('driver', q, Object.assign(ctx(), { cdlRequired: cdl })),
+        renderChosen: (id) => chosenLabel('driver', id),
+        onSelect: (id) => { blk.driverId = id; paintCombos(); },
+        onCreateWriteIn: (label) => createWriteInAsset('driver', label),
+      });
+      if (cdl) {
+        const eligible = comboOptionsFor('driver', '', Object.assign(ctx(), { cdlRequired: true }));
+        driverNote.style.display = eligible.length ? 'none' : '';
+        driverNote.textContent = eligible.length ? '' : 'No available CDL-A driver was found for these dates. Change the vehicle, the trailer, or the dates — this dispatch cannot be completed without a CDL-A driver.';
+      } else {
+        driverNote.style.display = 'none';
+      }
+      // Approved-trailer note when equipment is picked
+      const approvedNote = b.querySelector('.approved-note');
+      if (approvedNote) approvedNote.remove();
+      if (blk.equipmentId) {
+        const eq = assetById(blk.equipmentId);
+        const approved = (eq.approvedTrailerIds || []).map(id => (assetById(id)||{}).label).filter(Boolean);
+        if (approved.length) {
+          const note = el('div', { class: 'field hint approved-note', style: 'margin:-10px 0 14px;' });
+          note.textContent = 'Approved trailers for ' + eq.label + ': ' + approved.join(', ') + '.';
+          equipField.appendChild(note);
+        }
+      }
+      // The remain-on-scene checkbox for equipment only matters once
+      // equipment is chosen; without it there's nothing to split.
+      equipRemainsWrap.style.display = blk.equipmentId ? '' : 'none';
+      if (!blk.equipmentId && blk.equipmentRemains) { blk.equipmentRemains = false; equipRemainsCb.checked = false; }
+      paintCompat();
+      paintReturnTrips();
+    }
+    paintCombos();
+
+    return b;
+  }
+  paintBlocks();
+
+  const addBtn = el('button', { class: 'btn secondary', type: 'button', style: 'margin-bottom: 6px;' });
+  addBtn.innerHTML = icon('plus', 15) + '<span>Add Another Trailer / Truck</span>';
+  addBtn.addEventListener('click', () => { formState.blocks.push(blankBlock()); paintBlocks(); });
+  body.appendChild(addBtn);
+
+  card.appendChild(body);
+  wrap.appendChild(card);
+
+  // Actions
+  const actions = el('div', { class: 'form-actions' });
+  const leftActions = el('div');
+  if (isEdit) {
+    const del = el('button', { class: 'btn danger', type: 'button' });
+    del.innerHTML = icon('x', 15) + '<span>Delete Assignment</span>';
+    del.addEventListener('click', () => {
+      showConfirmModal({
+        title: 'Delete this assignment?',
+        message: 'This cancels "' + (existing.deploymentName || 'this booking') + '" and cannot be undone. It will be recorded in the Booking Log as a cancellation.',
+        confirmLabel: 'Delete & Log Cancellation',
+        onConfirm: async () => {
+          // Log first, then delete — the cancellation record is written even
+          // if the viewer navigates away the instant the row disappears.
+          await appendLog('Canceled', existing);
+          await deleteAssignmentDoc(existing.id);
+          showToast('Assignment canceled and logged.');
+          state.route = 'schedule'; state.editingId = null; render();
+        },
+      });
+    });
+    leftActions.appendChild(del);
+  }
+  actions.appendChild(leftActions);
+  const rightActions = el('div', { class: 'right' });
+  const cancelBtn = el('button', { class: 'btn secondary', type: 'button' }, ['Cancel']);
+  cancelBtn.addEventListener('click', () => { state.route = isEdit ? 'schedule' : 'dashboard'; state.editingId = null; render(); });
+  rightActions.appendChild(cancelBtn);
+  const saveBtn = el('button', { class: 'btn primary', type: 'button' });
+  saveBtn.innerHTML = icon('check', 15) + '<span>' + (isEdit ? 'Save Changes' : 'Save Assignment') + '</span>';
+  rightActions.appendChild(saveBtn);
+  actions.appendChild(rightActions);
+  wrap.appendChild(actions);
+
+  saveBtn.addEventListener('click', () => attemptSave());
+
+  function paintErrors(messages) {
+    errorHost.innerHTML = '';
+    if (!messages.length) return;
+    const box = el('div', { class: 'alert error' });
+    box.innerHTML = icon('ban', 18);
+    const b = el('div', { class: 'body' });
+    b.appendChild(el('div', {}, [document.createElement('b')]));
+    b.querySelector('b').textContent = 'CANNOT BOOK';
+    const ul = el('ul');
+    messages.forEach(m => ul.appendChild(el('li', {}, [m])));
+    b.appendChild(ul);
+    box.appendChild(b);
+    errorHost.appendChild(box);
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function attemptSave(skipB2BCheck) {
+    const errors = [];
+    if (!formState.deploymentName.trim()) errors.push('Enter a deployment name.');
+    formState.blocks.forEach((blk, i) => {
+      const label = formState.blocks.length > 1 ? 'Assignment ' + (i+1) + ': ' : '';
+      if (!blk.trailerId) errors.push(label + 'Choose a trailer.');
+      if (!blk.truckId) errors.push(label + 'Choose a truck.');
+      if (!blk.driverId) errors.push(label + 'Choose a driver.');
+      if (!blk.deployDate) errors.push(label + 'Set a departure date.');
+      if (!blk.returnDate) errors.push(label + 'Set a return date.');
+      if (blk.deployDate && blk.returnDate && blk.returnDate < blk.deployDate) errors.push(label + 'Return date is before the departure date.');
+      activeReturnScopes(blk).forEach(scope => {
+        const t = blk.rt[scope];
+        const name = scope === 'all' ? 'Return trip' : (scope === 'trailer' ? 'Trailer return' : 'Equipment return');
+        if (t.date && blk.deployDate && t.date < blk.deployDate) errors.push(label + name + ' date is before the departure date.');
+      });
+      // CDL-A required with no driver picked and none eligible: surface the
+      // dedicated modal — the dispatch stays incomplete.
+      if (!blk.driverId && blk.trailerId && blk.truckId && blk.deployDate && blk.returnDate) {
+        const compat = towCompatFor(assetById(blk.trailerId), assetById(blk.truckId), blk.loadedWeight);
+        if (compat.cdlRequired) {
+          const eligible = comboOptionsFor('driver', '', { deployDate: blk.deployDate, returnDate: blk.returnDate, equipmentId: null, excludeAssignmentId: isEdit ? existing.id : null, cdlRequired: true });
+          if (!eligible.length) attemptSave._noCdl = true;
+        }
+      }
+    });
+    if (errors.length) {
+      paintErrors(errors);
+      if (attemptSave._noCdl) { attemptSave._noCdl = false; showNoCdlModal(); }
+      return;
+    }
+    attemptSave._noCdl = false;
+
+    // Hard-stop conflict checks: trailer, truck, equipment, driver — against existing bookings AND sibling blocks in this same save.
+    const CHECKED_FIELDS = [['trailerId','Trailer'], ['truckId','Truck'], ['equipmentId','Equipment'], ['driverId','Driver']];
+    const conflictMsgs = [];
+    const redCompat = [];
+    formState.blocks.forEach((blk, i) => {
+      const label = formState.blocks.length > 1 ? 'Assignment ' + (i+1) + ' — ' : '';
+      CHECKED_FIELDS.forEach(([field, kindLabel]) => {
+        const assetId = blk[field];
+        if (!assetId) return;
+        const asset = assetById(assetId);
+        const conflicts = hardConflictsFor(asset, blk.deployDate, blk.returnDate, isEdit ? existing.id : null);
+        conflicts.forEach(c => {
+          if (c.type === 'oos') conflictMsgs.push(label + asset.label + ' is marked ' + (asset.kind === 'driver' ? 'Unavailable' : 'Out of Service') + '.');
+          else conflictMsgs.push(label + asset.label + ' is already assigned to: ' + c.booking.deploymentName + ' — Return Date: ' + fmtLong(c.booking.returnDate) + '.');
+        });
+      });
+      // Return-trip drivers: each must be free on their trip date (this
+      // assignment excluded, so the outbound driver can drive a return).
+      activeReturnScopes(blk).forEach(scope => {
+        const t = blk.rt[scope];
+        if (!t.driverId || !t.date) return;
+        const rtDriver = assetById(t.driverId);
+        const name = scope === 'all' ? 'Return trip driver ' : (scope === 'trailer' ? 'Trailer return driver ' : 'Equipment return driver ');
+        hardConflictsFor(rtDriver, t.date, t.date, isEdit ? existing.id : null).forEach(c => {
+          if (c.type === 'oos') conflictMsgs.push(label + name + rtDriver.label + ' is marked Unavailable.');
+          else conflictMsgs.push(label + name + rtDriver.label + ' is already assigned to: ' + c.booking.deploymentName + ' — Return Date: ' + fmtLong(c.booking.returnDate) + '.');
+        });
+      });
+      // Towing & CDL-A control.
+      if (blk.trailerId && blk.truckId) {
+        const compat = towCompatFor(assetById(blk.trailerId), assetById(blk.truckId), blk.loadedWeight);
+        if (compat.status === 'red' && !attemptSave._redOverridden) {
+          redCompat.push({ label, compat });
+        }
+        if (compat.cdlRequired) {
+          if (blk.driverId && !isCdlA(assetById(blk.driverId))) {
+            conflictMsgs.push(label + 'This combination (rated ' + fmtLb(compat.combined) + ') requires a CDL Class A driver — ' + labelOf(blk.driverId) + ' is not on file as CDL-A.');
+          }
+          activeReturnScopes(blk).forEach(scope => {
+            if (scope === 'equipment') return;
+            const t = blk.rt[scope];
+            if (t.driverId && !isCdlA(assetById(t.driverId))) {
+              conflictMsgs.push(label + 'The return trip for this CDL-A combination also requires a CDL Class A driver — ' + labelOf(t.driverId) + ' is not on file as CDL-A.');
+            }
+          });
+        }
+      }
+      // Drivers booked on THIS assignment: also blocked if they're already
+      // committed to another assignment's return trip inside this window.
+      if (blk.driverId && blk.deployDate && blk.returnDate) {
+        state.assignments.forEach(a => {
+          if (isEdit && a.id === existing.id) return;
+          returnTripsOf(a).forEach(t => {
+            if (t.driverId === blk.driverId && t.date &&
+                blk.deployDate <= t.date && t.date <= blk.returnDate) {
+              conflictMsgs.push(label + labelOf(blk.driverId) + ' is scheduled for the ' + a.deploymentName + ' return trip on ' + fmtLong(t.date) + '.');
+            }
+          });
+        });
+      }
+      // sibling blocks within this same submission
+      formState.blocks.forEach((other, j) => {
+        if (j <= i) return;
+        CHECKED_FIELDS.forEach(([field]) => {
+          if (blk[field] && blk[field] === other[field] && overlapsISO(blk.deployDate, blk.returnDate, other.deployDate, other.returnDate)) {
+            const asset = assetById(blk[field]);
+            conflictMsgs.push('Assignment ' + (i+1) + ' and Assignment ' + (j+1) + ' both use ' + asset.label + ' on overlapping dates.');
+          }
+        });
+      });
+    });
+    if (conflictMsgs.length) { paintErrors(conflictMsgs); return; }
+    errorHost.innerHTML = '';
+
+    // RED tow compatibility: block, with the authorized manual-override
+    // path — an explicit acknowledged override, never a silent pass.
+    if (redCompat.length && !attemptSave._redOverridden) {
+      showConfirmModal({
+        title: 'Incompatible combination',
+        message: redCompat.map(r => r.label + r.compat.reasons.join(' ')).join(' ') +
+          ' Booking anyway requires an authorized manual override and will be recorded.',
+        confirmLabel: 'Authorized Override — Book Anyway',
+        onConfirm: () => { attemptSave._redOverridden = true; attemptSave(skipB2BCheck); attemptSave._redOverridden = false; },
+      });
+      return;
+    }
+
+    if (!skipB2BCheck) {
+      const warnings = [];
+      formState.blocks.forEach((blk, i) => {
+        CHECKED_FIELDS.forEach(([field]) => {
+          const assetId = blk[field];
+          if (!assetId) return;
+          const asset = assetById(assetId);
+          const warns = backToBackWarningsFor(asset, blk.deployDate, blk.returnDate, isEdit ? existing.id : null);
+          warns.forEach(w => warnings.push({ asset, blk, warn: w }));
+        });
+      });
+      if (warnings.length) { showB2BModal(warnings, () => attemptSave(true)); return; }
+    }
+
+    doSave();
+  }
+
+  async function doSave() {
+    if (isEdit) {
+      const blk = formState.blocks[0];
+      const scopes = activeReturnScopes(blk);
+      const returnTrips = scopes.map(s => ({ scope: s, driverId: blk.rt[s].driverId || null, date: blk.rt[s].date || '' }));
+      const compatE = towCompatFor(assetById(blk.trailerId), assetById(blk.truckId), blk.loadedWeight);
+      const data = {
+        deploymentId: existing.deploymentId, deploymentName: formState.deploymentName.trim(),
+        trailerId: blk.trailerId, truckId: blk.truckId, equipmentId: blk.equipmentId || null,
+        driverId: blk.driverId, deployDate: blk.deployDate, returnDate: blk.returnDate, notes: blk.notes || '',
+        trailerRemains: !!blk.trailerRemains, equipmentRemains: !!blk.equipmentRemains,
+        loadedWeight: blk.loadedWeight || null,
+        cdlRequired: !!compatE.cdlRequired, combinedGvwr: compatE.combined || null,
+        returnTrips,
+        // legacy flat pair kept in step for anything still reading it
+        returnDriverId: scopes[0] === 'all' ? (blk.rt.all.driverId || null) : null,
+        returnTripDate: scopes[0] === 'all' ? (blk.rt.all.date || '') : '',
+        createdAt: existing.createdAt || Date.now(), updatedAt: Date.now(),
+      };
+      await saveAssignmentDoc(existing.id, data);
+      const oldByScope = {};
+      returnTripsOf(existing).forEach(t => { oldByScope[t.scope] = t; });
+      let loggedRT = false;
+      returnTrips.forEach(t => {
+        const old = oldByScope[t.scope] || {};
+        if (t.driverId && t.date && (old.driverId !== t.driverId || old.date !== t.date)) {
+          const tag = t.scope === 'all' ? '' : ' (' + (t.scope === 'trailer' ? 'trailer' : 'equipment') + ' return)';
+          appendLog('Return Scheduled', Object.assign({}, data, { deploymentName: data.deploymentName + tag, driverId: t.driverId, deployDate: t.date, returnDate: t.date }));
+          loggedRT = true;
+        }
+      });
+      if (!loggedRT) appendLog('Updated', data);
+      showToast('Assignment updated.');
+      state.route = 'schedule'; state.editingId = null; render();
+    } else {
+      for (const blk of formState.blocks) {
+        const id = uid('asg');
+        const scopes = activeReturnScopes(blk);
+        const returnTrips = scopes.map(s => ({ scope: s, driverId: blk.rt[s].driverId || null, date: blk.rt[s].date || '' }));
+        const compatN = towCompatFor(assetById(blk.trailerId), assetById(blk.truckId), blk.loadedWeight);
+        const data = {
+          deploymentId: formState.deploymentId, deploymentName: formState.deploymentName.trim(),
+          trailerId: blk.trailerId, truckId: blk.truckId, equipmentId: blk.equipmentId || null,
+          driverId: blk.driverId, deployDate: blk.deployDate, returnDate: blk.returnDate, notes: blk.notes || '',
+          trailerRemains: !!blk.trailerRemains, equipmentRemains: !!blk.equipmentRemains,
+          loadedWeight: blk.loadedWeight || null,
+          cdlRequired: !!compatN.cdlRequired, combinedGvwr: compatN.combined || null,
+          returnTrips,
+          returnDriverId: scopes[0] === 'all' ? (blk.rt.all.driverId || null) : null,
+          returnTripDate: scopes[0] === 'all' ? (blk.rt.all.date || '') : '',
+          createdAt: Date.now(),
+        };
+        await saveAssignmentDoc(id, data);
+        appendLog('Booked', data);
+        returnTrips.forEach(t => {
+          if (t.driverId && t.date) {
+            const tag = t.scope === 'all' ? '' : ' (' + (t.scope === 'trailer' ? 'trailer' : 'equipment') + ' return)';
+            appendLog('Return Scheduled', Object.assign({}, data, { deploymentName: data.deploymentName + tag, driverId: t.driverId, deployDate: t.date, returnDate: t.date }));
+          }
+        });
+      }
+      showToast('Assignment saved.');
+      state.route = 'dashboard'; state.editingId = null; render();
+    }
+  }
+
+  return wrap;
+}
+
+// CDL-A warning: shown the moment a combination crosses 25,999 lb rated
+// weight, before driver selection. Deliberately has NO dismiss-and-continue
+// option — the only way forward is CDL-A driver selection.
+function showCdlModal(truck, trailer, compat) {
+  const overlay = el('div', { class: 'modal-overlay' });
+  const modal = el('div', { class: 'modal' });
+  const h = el('h3', { style: 'color: var(--oos-fg);' });
+  h.innerHTML = icon('warn', 20) + 'CDL-A DRIVER REQUIRED';
+  modal.appendChild(h);
+  modal.appendChild(el('div', { class: 'lead' }, [
+    'This vehicle and trailer combination has a combined rated weight greater than 25,999 lb. Only a driver recorded in the TXM fleet system as CDL Class A may be assigned to this combination.']));
+  const facts = el('div', { style: 'font-size: 13.5px; line-height: 1.9; margin: 10px 0;' });
+  const row = (k, v) => { const d = el('div'); d.appendChild(el('b', {}, [k + ': '])); d.appendChild(document.createTextNode(v)); return d; };
+  facts.appendChild(row('Vehicle', truck.label + (truck.description ? ' — ' + truck.description : '')));
+  facts.appendChild(row('Vehicle GVWR', fmtLb(truckGvwrOf(truck).value) + (truckGvwrOf(truck).provisional ? ' (class estimate)' : '')));
+  facts.appendChild(row('Trailer', trailer.label + (trailer.description ? ' — ' + trailer.description : '')));
+  facts.appendChild(row('Trailer GVWR', fmtLb(trailer.gvwr)));
+  facts.appendChild(row('Combined Rated Weight', fmtLb(compat.combined)));
+  facts.appendChild(row('Required Driver Qualification', 'CDL CLASS A'));
+  modal.appendChild(facts);
+  const actions = el('div', { class: 'modal-actions' });
+  const goBtn = el('button', { class: 'btn primary' }, ['Continue to CDL-A Driver Selection']);
+  goBtn.addEventListener('click', () => overlay.remove());
+  actions.appendChild(goBtn);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  // No overlay-click dismiss on purpose.
+  document.body.appendChild(overlay);
+}
+
+// No eligible CDL-A driver: the dispatch stays incomplete — there is no
+// normal-completion path around this.
+function showNoCdlModal() {
+  const overlay = el('div', { class: 'modal-overlay' });
+  const modal = el('div', { class: 'modal' });
+  const h = el('h3', { style: 'color: var(--oos-fg);' });
+  h.innerHTML = icon('warn', 20) + 'NO QUALIFIED CDL-A DRIVER AVAILABLE';
+  modal.appendChild(h);
+  modal.appendChild(el('div', { class: 'lead' }, [
+    'This combination requires a CDL-A driver, but no currently available CDL-A driver was found. The dispatch stays incomplete until an eligible driver is selected — change the vehicle, the trailer, or the dates.']));
+  const listHost = el('div', { style: 'display: none; font-size: 13px; line-height: 1.8; margin: 8px 0; max-height: 180px; overflow-y: auto;' });
+  const cdlAll = assetsOfKind('driver').filter(isCdlA);
+  listHost.appendChild(el('b', {}, ['CDL-A drivers on the approved list:']));
+  cdlAll.forEach(d => listHost.appendChild(el('div', {}, [d.label + ' — ' + (d.description || 'CDL-A')])));
+  if (!cdlAll.length) listHost.appendChild(el('div', {}, ['None on file.']));
+  modal.appendChild(listHost);
+  const actions = el('div', { class: 'modal-actions' });
+  const viewBtn = el('button', { class: 'btn secondary' }, ['View CDL-A Drivers']);
+  viewBtn.addEventListener('click', () => { listHost.style.display = listHost.style.display === 'none' ? '' : 'none'; });
+  const vehBtn = el('button', { class: 'btn secondary' }, ['Change Vehicle']);
+  vehBtn.addEventListener('click', () => overlay.remove());
+  const trBtn = el('button', { class: 'btn secondary' }, ['Change Trailer']);
+  trBtn.addEventListener('click', () => overlay.remove());
+  actions.appendChild(viewBtn); actions.appendChild(vehBtn); actions.appendChild(trBtn);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// In-page confirmation. The artifact viewer runs this page in a sandboxed
+// frame where the browser's native confirm() is blocked and silently
+// returns false — which made the Delete button look dead. Never use
+// confirm()/alert()/prompt() here; this modal is the replacement.
+function showConfirmModal(opts) {
+  const overlay = el('div', { class: 'modal-overlay' });
+  const modal = el('div', { class: 'modal' });
+  const h = el('h3', { style: 'color: var(--oos-fg);' });
+  h.innerHTML = icon('warn', 20) + opts.title;
+  modal.appendChild(h);
+  modal.appendChild(el('div', { class: 'lead' }, [opts.message]));
+  const actions = el('div', { class: 'modal-actions' });
+  const cancel = el('button', { class: 'btn secondary' }, ['Go Back']);
+  cancel.addEventListener('click', () => overlay.remove());
+  const confirmBtn = el('button', { class: 'btn danger-solid' }, [opts.confirmLabel]);
+  confirmBtn.addEventListener('click', () => { overlay.remove(); opts.onConfirm(); });
+  actions.appendChild(cancel); actions.appendChild(confirmBtn);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function showB2BModal(warnings, onContinue) {
+  const overlay = el('div', { class: 'modal-overlay' });
+  const modal = el('div', { class: 'modal' });
+  const h = el('h3', {});
+  h.innerHTML = icon('warn', 20) + 'Back-to-Back Booking Warning';
+  modal.appendChild(h);
+  modal.appendChild(el('div', { class: 'lead' }, ['Review the timing below, then confirm the assets can be turned around in time.']));
+  warnings.forEach(w => {
+    const item = el('div', { class: 'conflict-item' });
+    const gapText = w.warn.gap === 0 ? 'the same day' : (w.warn.gap + ' day later');
+    let msg;
+    if (w.warn.direction === 'after') {
+      msg = w.asset.label + ' returns ' + fmtLong(w.warn.booking.returnDate) + ' and is scheduled again ' + fmtLong(w.blk.deployDate) + ' (' + gapText + ').';
+    } else {
+      msg = w.asset.label + ' returns ' + fmtLong(w.blk.returnDate) + ' and is scheduled again ' + fmtLong(w.warn.booking.deployDate) + ' (' + gapText + ').';
+    }
+    item.appendChild(el('div', { class: 'who' }, [w.asset.label]));
+    item.appendChild(el('div', {}, [msg]));
+    item.appendChild(el('div', { class: 'hint', style: 'margin-top:6px;' }, ['Verify there is enough time to return, unload, inspect, prepare, and redeploy.']));
+    modal.appendChild(item);
+  });
+  const actions = el('div', { class: 'modal-actions' });
+  const back = el('button', { class: 'btn secondary' }, ['Go Back']);
+  back.addEventListener('click', () => overlay.remove());
+  const cont = el('button', { class: 'btn primary' }, ['Acknowledge & Save']);
+  cont.addEventListener('click', () => { overlay.remove(); onContinue(); });
+  actions.appendChild(back); actions.appendChild(cont);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = el('div', { class: 'toast' });
+  t.innerHTML = icon('check', 15) + '<span>' + msg + '</span>';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+/* =====================================================================
+   ROOT RENDER
+   ===================================================================== */
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  const shell = el('div', { class: 'shell' });
+  shell.appendChild(renderNav());
+  const main = el('div', { class: 'main' });
+
+  if (!state.ready) {
+    const loading = el('div', { class: 'container' }, [el('div', { class: 'placeholder-note' }, ['Loading dispatch board…'])]);
+    main.appendChild(loading);
+  } else if (state.route === 'dashboard') {
+    main.appendChild(renderDashboard());
+  } else if (state.route === 'log') {
+    main.appendChild(renderLog());
+  } else if (state.route === 'schedule') {
+    main.appendChild(renderSchedule());
+  } else if (state.route === 'new') {
+    main.appendChild(renderAssignmentForm('new'));
+  } else if (state.route === 'edit') {
+    main.appendChild(renderAssignmentForm('edit'));
+  }
+  shell.appendChild(main);
+  app.appendChild(shell);
+}
+
+render();
+initData();
+
+// Date rollover: the dashboard buckets (Scheduled → Currently Deployed,
+// Returns Due) are computed from today's date at render time, but a tab
+// left open overnight would keep showing yesterday's view until some data
+// arrived. Watch the local calendar and re-render the moment the date
+// changes — this is what moves a scheduled trip to Deployed on its
+// departure date without anyone touching anything.
+let lastRenderedDay = toISODate(todayDateOnly());
+setInterval(() => {
+  const d = toISODate(todayDateOnly());
+  if (d !== lastRenderedDay) {
+    lastRenderedDay = d;
+    if (state.route !== 'new' && state.route !== 'edit') render();
+  }
+}, 60000);
+</script>
+</body>
+</html>
+
+</body></html>

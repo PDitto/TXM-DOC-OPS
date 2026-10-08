@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TXM Operations Hub</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0a0e14; --panel:#111824; --panel-2:#161f2e; --line:#243044;
+    --text:#e7eef6; --muted:#8597ad; --muted-2:#5d6e85; --amber:#ffb000;
+    --disp:'Oswald',sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace; --body:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(255,176,0,.06), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(79,195,247,.05), transparent 60%),
+      var(--void);
+    background-attachment:fixed; color:var(--text); font-family:var(--body);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+    background-size:42px 42px;mask-image:radial-gradient(circle at 50% 20%, #000 40%, transparent 90%);}
+
+  header{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:44px 26px 10px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--amber)}
+  h1{font-family:var(--disp);font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    font-size:clamp(30px,6vw,46px);line-height:1;margin:10px 0 6px}
+  .tag{font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.03em;max-width:620px;line-height:1.5}
+  .clock{font-family:var(--mono);font-size:12px;color:var(--muted-2);margin-top:14px;letter-spacing:.05em}
+  .clock b{color:var(--amber)}
+
+  main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:22px 26px 60px;
+    display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  a.tile{display:flex;flex-direction:column;gap:0;text-decoration:none;color:inherit;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);
+    border-radius:9px;overflow:hidden;min-height:168px;position:relative;
+    transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}
+  a.tile:hover,a.tile:focus-visible{transform:translateY(-3px);border-color:rgba(255,176,0,.5);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);outline:none}
+  a.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--amber))}
+  .thead{display:flex;align-items:center;gap:13px;padding:20px 20px 12px}
+  .ic{width:38px;height:38px;flex:none;color:var(--accent,var(--amber))}
+  .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.5}
+  .tname{font-family:var(--disp);text-transform:uppercase;font-weight:600;letter-spacing:.05em;font-size:18px;line-height:1.1}
+  .tdesc{padding:0 20px 16px;font-size:13px;color:var(--muted);line-height:1.5;flex:1}
+  .go{padding:11px 20px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);display:flex;justify-content:space-between;align-items:center}
+  a.tile:hover .go{color:var(--amber)}
+  footer{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 26px 50px;
+    font-family:var(--mono);font-size:11px;color:var(--muted-2);line-height:1.6}
+  @media(prefers-reduced-motion:reduce){a.tile{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Texans on Mission · Disaster Relief</div>
+  <h1>Operations Hub</h1>
+  <div class="tag">Field dashboards for fleet, dispatch, and disaster monitoring. Tap any board to open it full-screen.</div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<main>
+  <a class="tile" href="dispatch-board.html" style="--accent:#ff8c42">
+    <div class="thead"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg></div>
+      <div class="tname">Dispatch Board</div></div>
+    <div class="tdesc">Assignments, statuses, and tasking at a glance for active response.</div>
+    <div class="go"><span>Open board</span><span>&rarr;</span></div>
+  </a>
+
+  <a class="tile" href="fleet-status.html" style="--accent:#46d27f">
+    <div class="thead"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 13l2-5h11l3 5M3 13h16v4H3zM7 17a2 2 0 1 0 0 .01M16 17a2 2 0 1 0 0 .01"/></svg></div>
+      <div class="tname">Fleet &amp; Unit Status</div></div>
+    <div class="tdesc">Vehicle and unit readiness across headquarters and the field.</div>
+    <div class="go"><span>Open board</span><span>&rarr;</span></div>
+  </a>
+
+  <a class="tile" href="fleet-locator.html" style="--accent:#4fc3f7">
+    <div class="thead"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+      <div class="tname">Nearest Unit Locator</div></div>
+    <div class="tdesc">Find the closest available unit to a point on the map.</div>
+    <div class="go"><span>Open board</span><span>&rarr;</span></div>
+  </a>
+
+  <a class="tile" href="disaster-watch.html" style="--accent:#ff3b30">
+    <div class="thead"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.3"/><path d="M12 9.5c4-2 7-1 7 1.5M12 14.5c-4 2-7 1-7-1.5M9.5 12c-2-4-1-7 1.5-7M14.5 12c2 4 1 7-1.5 7"/></svg></div>
+      <div class="tname">Disaster Watch</div></div>
+    <div class="tdesc">Live U.S. and global disaster feeds — hurricanes, fires, floods, FEMA.</div>
+    <div class="go"><span>Open board</span><span>&rarr;</span></div>
+  </a>
+</main>
+
+<footer>
+  Add to your iPad home screen: open this page in Safari &rarr; Share &rarr; Add to Home Screen.
+</footer>
+
+<script>
+  function tick(){ const d=new Date();
+    document.getElementById('clock').innerHTML='<b>'+d.toLocaleTimeString('en-US',{hour12:false})+'</b> local · '+
+      d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+  setInterval(tick,1000); tick();
+</script>
+</body>
+</html>
