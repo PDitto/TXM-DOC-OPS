@@ -20,6 +20,8 @@ Notes
   until the town is added to `locator-geo.json` as `{"Town": [lat, lng]}`.
 - `refresh_dispatch.py` follows the same rules as the board's own sheet sync:
   it updates status, hitch, weights, model and comments, adds new units and
-  never removes one.
+  never removes one. A unit keeps one row: a sheet number like `B206/#8` is the
+  board's `B206`, and a unit renumbered in the sheet (new number in `#`, previous
+  one in the first `Old #` column) is renumbered on the board, not added again.
 - The dispatch board on this site has no shared database, so assignments made
   here stay in that browser. Only the unit list and statuses are refreshed.
