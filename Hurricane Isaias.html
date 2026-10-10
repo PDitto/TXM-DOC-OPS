@@ -153,7 +153,7 @@ a{color:var(--accent);text-underline-offset:2px}
 
 <!-- ===== DATA BLOCK: replace CAPTURED and SNAP to refresh ===== -->
 <script>
-const CAPTURED = "Sat Oct 10, 12:55 PM CT";
+const CAPTURED = "Sat Oct 10, 1:53 PM CT";
 const SNAP = {
  "pulls": [
   {
@@ -231,6 +231,25 @@ const SNAP = {
    "damage_note": "No county has released counts of homes destroyed or damaged. Newly reported: roofs torn off an apartment complex and a high school gym in Milton, and several homes hit by trees in the Birmingham area.",
    "takeaway": "Power outages have dropped to just under 790,000, with about 428,000 of them in Florida. The Shoal River near Mossy Head is in major flood at a level that floods nearly all homes on Plantation Lane, and the Crestview gauge is still due to crest Sunday evening. Three deaths are confirmed by officials, no tornado is confirmed, and there are still no official home damage or flooding counts.",
    "changes": "Outages fell to just under 790,000 at 12:19 PM CT from about 889,000 at 9:19 AM CT. The Shoal River near Mossy Head reached 22.5 feet (major flood), above the level where the NWS says nearly all Plantation Lane homes flood. CNN and NBC headlines now say at least four deaths, but the fourth could not be verified, so the count stays at three. New damage reports from Milton (apartment and school gym roofs) and Birmingham (several homes hit by trees); no confirmed tornadoes, no official home counts and no major disaster declaration."
+  },
+  {
+   "pulled_at": "2026-10-10T18:53:00Z",
+   "pulled_label": "Sat Oct 10, 1:53 PM CT",
+   "storm_status": "Post-tropical, about 50 miles south of Birmingham at 10 AM CT with 35 mph winds, moving north-northwest near 10 mph and due to turn northeast tonight into Sunday; no newer advisory yet (the Weather Prediction Center's next is due at 4 PM CT).",
+   "outages_total": 660000,
+   "outages_peak": 950000,
+   "outages_as_of": "Sat 1:38 PM CT",
+   "outages_note": "More than 660,000 per WFTV (tracker not named): Florida over 420,000, Alabama about 200,000, Georgia tens of thousands. Earlier readings came from PowerOutage.com, so part of the drop may be a difference between trackers.",
+   "confirmed_tornadoes": 0,
+   "tornado_note": "No NWS survey results or EF ratings yet. A tornado watch covers eastern Georgia and parts of South Carolina until 7 PM CT.",
+   "deaths": 4,
+   "deaths_note": "Two in Escambia County, FL per the sheriff (a tree on a home; carbon monoxide from a generator run indoors) and two in Alabama per Gov. Ivey.",
+   "flooding_headline": "No home counts yet",
+   "flooding_note": "Still no official count of flooded homes anywhere. No newer Shoal River reading was found this hour; the Mossy Head gauge was in major flood at 22.5 feet at 11:15 AM CT, and the Crestview gauge is forecast to crest near 14.9 feet Sunday evening.",
+   "damage_headline": "Assessments underway",
+   "damage_note": "No county or state agency has released counts of homes destroyed or damaged. Gov. DeSantis toured Destin and Fort Walton Beach this afternoon, and state assessment teams are in the field.",
+   "takeaway": "A fourth death is confirmed: a man died of carbon monoxide poisoning from a generator run inside an Escambia County, Florida home, and four others were hospitalized. Outages are down to a little over 660,000, most of them in Florida (over 420,000) and Alabama (about 200,000). No tornado is confirmed, though a tornado watch is up for eastern Georgia and South Carolina until 7 PM CT, and there are still no official home damage or flooding counts.",
+   "changes": "Deaths rose from 3 to 4: the Escambia County sheriff confirmed a carbon monoxide death from an indoor generator, with four others hospitalized. Outages fell to more than 660,000 (WFTV, 1:38 PM CT) from just under 790,000 at 12:19 PM CT, though the newer figure comes from an unnamed tracker. A tornado watch was issued for eastern Georgia and parts of South Carolina until 7 PM CT. No confirmed tornadoes, no official home counts and no major disaster declaration."
   }
  ],
  "outages": [
@@ -363,6 +382,16 @@ const SNAP = {
    "georgia": null,
    "source": "FOX Weather (PowerOutage.com; reported as \"below 790,000\", Florida about 428,000)",
    "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T18:38:00Z",
+   "time_label": "Sat 1:38 PM CT",
+   "total": 660000,
+   "florida": 420000,
+   "alabama": 200000,
+   "georgia": null,
+   "source": "WFTV (tracker not named; reported as \"more than 660,000\" Saturday afternoon, Florida more than 420,000, Alabama about 200,000, Georgia \"tens of thousands\"; time is the article's)",
+   "url": "https://www.wftv.com/news/local/hurricane-isaias-leaves-over-420000-florida-utility-customers-without-power/Z3WICRARNBBVXDXOX2TEM67Z5Q/"
   }
  ],
  "impacts": [
@@ -371,9 +400,9 @@ const SNAP = {
    "category": "Damage assessment",
    "state": "FL",
    "location": "Escambia County / Pensacola Beach",
-   "detail": "Cleanup has begun at Pensacola Beach, with sand-choked roads, roof damage and downed signs, per FOX Weather at 12:14 PM CT. County damage assessment teams started Saturday morning; Bob Sikes Bridge has reopened. No counts released.",
+   "detail": "Cleanup continues at Pensacola Beach, where FOX Weather's crew reported structural roof damage, sand-choked roads and downed signs at 12:52 PM CT. County damage assessment teams started Saturday morning; Bob Sikes Bridge has reopened. No counts released.",
    "status": "Underway",
-   "as_of": "Sat 12:55 PM CT",
+   "as_of": "Sat 1:53 PM CT",
    "source": "FOX Weather; AccuWeather",
    "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
   },
@@ -591,20 +620,20 @@ const SNAP = {
    "category": "Residential flooding",
    "state": "GA",
    "location": "North Georgia and Blue Ridge (Atlanta to Asheville)",
-   "detail": "The metro Atlanta flash flood warning (Clayton, DeKalb, Fulton, Gwinnett, Henry, Rockdale) was due to expire at 12:15 PM CT and no newer warning was found. A flood watch covers north and central Georgia until Sunday morning, and the Weather Prediction Center expects 3 to 6 inches, locally up to 10, from northeast Georgia into the western Carolinas. No flooded homes reported.",
+   "detail": "The metro Atlanta flash flood warning (Clayton, DeKalb, Fulton, Gwinnett, Henry, Rockdale) expired at 12:15 PM CT and no newer warning was found. All of Georgia is under a flood watch through Sunday morning, and GEMA says heavy rain and localized flash flooding are still possible in central and north Georgia (2 to 4 inches, locally up to 8). No flooded homes reported.",
    "status": "Active",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "Atlanta News First; WABE; Weather Prediction Center advisory 16",
-   "url": "https://www.atlantanewsfirst.com/2026/10/10/live-updates-isaias-brings-rain-wind-north-georgia/"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "AJC (GEMA); WSB-TV; Atlanta News First",
+   "url": "https://www.ajc.com/news/2026/10/hurricane-isaias-affects-georgia/"
   },
   {
    "id": "r022",
    "category": "Tornado",
    "state": "All",
    "location": "FL, AL, GA",
-   "detail": "No tornado has been confirmed by the National Weather Service. The latest public information statements from NWS Mobile (3:37 AM CT, wind reports only), Tallahassee, Birmingham and Peachtree City contain no survey results or EF ratings, and none appear in news live blogs.",
+   "detail": "No tornado has been confirmed by the National Weather Service. The latest public information statements from NWS Mobile (3:37 AM CT, wind reports only), Tallahassee (5:33 AM CT), Birmingham (11:02 AM CT) and Peachtree City contain no survey results or EF ratings, and none appear in news live blogs. A tornado watch is now in effect for eastern Georgia and parts of South Carolina until 7 PM CT.",
    "status": "None confirmed",
-   "as_of": "Sat 12:55 PM CT",
+   "as_of": "Sat 1:53 PM CT",
    "source": "NWS Mobile; NWS Tallahassee; NWS Birmingham; NWS Peachtree City; FOX Weather",
    "url": "https://forecast.weather.gov/product.php?site=MOB&product=PNS&issuedby=MOB"
   },
@@ -624,22 +653,22 @@ const SNAP = {
    "category": "Tornado",
    "state": "GA",
    "location": "Eastern Panhandle, Georgia, Carolinas",
-   "detail": "The Weather Prediction Center's 10 AM CT advisory says a couple of tornadoes are possible today in eastern Georgia and the Carolinas. The Weather Channel adds the eastern Florida Panhandle for Saturday and Saturday evening, with isolated tornadoes possible farther up the East Coast on Sunday. No tornado warnings found in Georgia live blogs so far Saturday.",
-   "status": "Forecast",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "Weather Prediction Center advisory 16; The Weather Channel; Atlanta News First",
-   "url": "https://www.nhc.noaa.gov/mobile/text/refresh/MIATCPAT4+html/081154.shtml"
+   "detail": "The Storm Prediction Center issued a tornado watch for eastern Georgia and parts of South Carolina until 7 PM CT (8 PM ET), per FOX Weather at 1:18 PM CT; quick tornadoes and damaging gusts are possible. The Weather Prediction Center's 10 AM CT advisory says a couple of tornadoes are possible today in eastern Georgia and the Carolinas. No tornado warnings or touchdowns reported in Georgia live blogs so far Saturday.",
+   "status": "Active",
+   "as_of": "Sat 1:53 PM CT",
+   "source": "FOX Weather (Storm Prediction Center); Weather Prediction Center advisory 16; AJC; WSB-TV",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
   },
   {
    "id": "r025",
    "category": "Power",
    "state": "FL",
    "location": "Escambia County, FL",
-   "detail": "About 116,000 Florida Power & Light customers still out at 8:40 AM CT. City of Pensacola says about 141,000 of FPL's 168,000 Escambia customers lost power and about 11,500 were restored by 8 AM.",
+   "detail": "Escambia County has the most outages in Florida, with about 130,000 customers without electricity Saturday afternoon, per WFTV (article time 1:38 PM CT). Earlier, about 116,000 Florida Power & Light customers were out at 8:40 AM CT; the two figures may not count the same utilities.",
    "status": "Reported",
-   "as_of": "Sat 10:55 AM CT",
-   "source": "AccuWeather; FOX10 Mobile",
-   "url": "https://www.fox10tv.com/2026/10/10/pensacola-city-officials-release-more-information-impact-isaias/"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WFTV; AccuWeather; FOX10 Mobile",
+   "url": "https://www.wftv.com/news/local/hurricane-isaias-leaves-over-420000-florida-utility-customers-without-power/Z3WICRARNBBVXDXOX2TEM67Z5Q/"
   },
   {
    "id": "r026",
@@ -657,10 +686,10 @@ const SNAP = {
    "category": "Power",
    "state": "AL",
    "location": "Alabama Power territory",
-   "detail": "Alabama Power says more than 76,700 customers were restored as of midday Saturday; in southwest Alabama about 13,500 are back on and about 38,000 are still out, with Escambia and Monroe counties among the hardest hit. An ABC 33/40 headline now says more than 267,000 Alabama Power customers lost electricity during the storm. More than 6,400 extra personnel are working; no restoration estimates yet.",
+   "detail": "About 200,000 customers were without power in Alabama Saturday afternoon, per WFTV (article time 1:38 PM CT; tracker not named). Alabama Power says more than 76,700 customers were restored as of midday; in southwest Alabama about 38,000 are still out, with Escambia and Monroe counties among the hardest hit. More than 6,400 extra personnel are working; no restoration estimates yet.",
    "status": "Reported",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "FOX10 Mobile (Alabama Power); ABC 33/40",
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WFTV; FOX10 Mobile (Alabama Power)",
    "url": "https://www.fox10tv.com/2026/10/10/thousands-remain-without-power-across-alabama-following-isaias/"
   },
   {
@@ -668,10 +697,10 @@ const SNAP = {
    "category": "Fatality",
    "state": "FL",
    "location": "Escambia County, FL",
-   "detail": "Woman killed when a large tree fell on her home, per Sheriff Chip Simmons. Gov. DeSantis said at his Saturday morning briefing that the state had not yet confirmed any storm deaths, including this one.",
+   "detail": "Woman killed when a large tree fell on her home; she was found pinned under it about 8:48 PM Friday, per Sheriff Chip Simmons. Gov. DeSantis said at his Saturday morning briefing that the state had not yet confirmed any storm deaths, including this one.",
    "status": "Confirmed",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "CBS News; WPTV (Gov. DeSantis)",
+   "as_of": "Sat 1:53 PM CT",
+   "source": "Newsweek (Sheriff Simmons); CBS News; WPTV (Gov. DeSantis)",
    "url": "https://www.wptv.com/news/state/desantis-nearly-450-000-without-power-after-hurricane-isaias-but-no-confirmed-storm-deaths-in-florida"
   },
   {
@@ -690,10 +719,10 @@ const SNAP = {
    "category": "Response",
    "state": "All",
    "location": "Florida and Alabama",
-   "detail": "Federal emergency declarations (not major disaster declarations) approved Friday night. Florida's covers 27 counties including Escambia, Santa Rosa, Okaloosa, Walton and Bay; Alabama's covers Baldwin, Escambia and Mobile counties and the Poarch Band of Creek Indians, with emergency protective measures at 75% federal share. No major disaster declaration found this pull; Florida says the damage assessments now underway will determine whether it qualifies for more federal aid.",
+   "detail": "Federal emergency declarations (not major disaster declarations) approved Friday night. Florida's covers 27 counties including Escambia, Santa Rosa, Okaloosa, Walton and Bay; Alabama's covers Baldwin, Escambia and Mobile counties and the Poarch Band of Creek Indians, with emergency protective measures at 75% federal share. No major disaster declaration or request for one found this pull; the governor's Saturday release mentions no federal aid request.",
    "status": "Active",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "WEAR; WSFA; FOX Weather; WPTV",
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WTVY (FEMA); WEAR; Florida Governor's Office; FOX Weather",
    "url": "https://www.wptv.com/news/state/desantis-nearly-450-000-without-power-after-hurricane-isaias-but-no-confirmed-storm-deaths-in-florida"
   },
   {
@@ -767,33 +796,33 @@ const SNAP = {
    "category": "Power",
    "state": "GA",
    "location": "Georgia (statewide)",
-   "detail": "PowerOutage.us showed over 90,000 Georgia customers without power at about 11 AM CT, per WABE, led by Gwinnett (9,000), DeKalb (7,700), Cherokee (5,300) and Pickens (4,300) counties. Georgia Power said more than 100,000 were out late Saturday morning, per the AJC; the two figures have not been reconciled.",
+   "detail": "Georgia Power had 46,822 customers out at 11 AM CT, down from 80,552 at 7:14 AM CT, led by DeKalb (5,911) and Gwinnett (5,348), per WSB-TV. The AJC still cites Georgia Power saying more than 100,000 customers statewide are without power, and WFTV says only \"tens of thousands\" Saturday afternoon; the figures have not been reconciled and may count different utilities.",
    "status": "Reported",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "WABE (PowerOutage.us); AJC (Georgia Power)",
-   "url": "https://www.wabe.org/isaias-causes-tens-of-thousands-of-power-outages-in-metro-atlanta/"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WSB-TV (Georgia Power); AJC; WFTV",
+   "url": "https://www.wsbtv.com/news/local/hurricane-isaias-live-updates-storm-now-post-tropical-georgia-feeling-impacts-today/Y3NKVTBLMFBSPIPNSRVYS7A7HI/"
   },
   {
    "id": "r038",
    "category": "Power",
    "state": "FL",
    "location": "Florida (statewide)",
-   "detail": "About 428,000 Florida customers were still out at 12:19 PM CT, per PowerOutage.com via FOX Weather, down from the 448,000 Gov. DeSantis gave as of 7 AM (about 323,000 Florida Power & Light and 110,000 electric co-op). Share of customers out by county at the morning briefing: Santa Rosa about 90%, Holmes 89%, Washington 86%, Walton 85%, Escambia 75%, Okaloosa 53%.",
+   "detail": "More than 420,000 Florida customers were still out Saturday afternoon, per WFTV (article time 1:38 PM CT), down from 448,298 at 7 AM. Florida Power & Light had about 332,000 out and had restored more than 43,000 by 12:30 PM Saturday; Choctawhatchee Electric Cooperative lost about 68,900 customers, roughly 90% of its system. Holmes County has the highest share out at 95.5%; no restoration timeline given.",
    "status": "Reported",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "FOX Weather (PowerOutage.com); WPTV (Gov. DeSantis)",
-   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WFTV (FPL, CHELCO); Florida Governor's Office",
+   "url": "https://www.wftv.com/news/local/hurricane-isaias-leaves-over-420000-florida-utility-customers-without-power/Z3WICRARNBBVXDXOX2TEM67Z5Q/"
   },
   {
    "id": "r039",
    "category": "Response",
    "state": "FL",
    "location": "Florida Panhandle (state response)",
-   "detail": "All state bridges, I-10 and US-98 are open, and the state had received no requests for large search-and-rescue deployments as of the governor's morning briefing; Florida National Guard soldiers pulled people from a submerged car. Northwest Florida Beaches and Tallahassee airports are open (Tallahassee is a relief staging area), while the Pensacola and Destin-Fort Walton Beach airports were still closed Saturday morning. Gov. DeSantis planned to visit damaged areas including Okaloosa County later Saturday.",
+   "detail": "Gov. DeSantis toured damage in Destin and Fort Walton Beach Saturday afternoon with Okaloosa Sheriff Eric Aden and Commissioner Carolyn Ketchel; no damage figures were given. The state says all state bridges and interstates are open and US-98 is cleared, with troopers directing traffic around severe flooding; Pensacola and Destin-Fort Walton Beach airports remain closed to commercial flights. About 5,000 Florida National Guard members are activated and two urban search-and-rescue teams are staged in Tallahassee; no rescue counts released.",
    "status": "Active",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "WPTV (Gov. DeSantis); FOX Weather",
-   "url": "https://www.wptv.com/news/state/desantis-nearly-450-000-without-power-after-hurricane-isaias-but-no-confirmed-storm-deaths-in-florida"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "WJHG (Gov. DeSantis tour); Florida Governor's Office; FOX Weather",
+   "url": "https://www.wjhg.com/2026/10/10/gov-desantis-tours-hurricane-isaias-damage-destin-fort-walton-beach/"
   },
   {
    "id": "r040",
@@ -822,11 +851,11 @@ const SNAP = {
    "category": "Fatality",
    "state": "AL",
    "location": "Alabama (second death; location not released)",
-   "detail": "Gov. Kay Ivey said two Alabamians have died in the storm, which makes three deaths overall with the one in Florida. One is the East Birmingham death; reports updated through 12:29 PM CT (WAKA, ABC 33/40, FOX 35) still do not say where or how the second happened.",
+   "detail": "Gov. Kay Ivey said two Alabamians have died in the storm. One is the East Birmingham death; reports updated through 1:35 PM CT (ABC 33/40, AOL, FOX Weather) still do not say where or how the second happened.",
    "status": "Confirmed",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "WAKA (Gov. Ivey); ABC 33/40; FOX 35",
-   "url": "https://www.waka.com/2026/10/10/governor-ivey-two-people-dead-after-hurricane-isaias/"
+   "as_of": "Sat 1:53 PM CT",
+   "source": "ABC 33/40 (Gov. Ivey); WAKA; AOL",
+   "url": "https://abc3340.com/news/alabama-news/two-alabamians-have-lost-their-lives-gov-ivey-confirms-isaias-deaths"
   },
   {
    "id": "r043",
@@ -866,9 +895,9 @@ const SNAP = {
    "category": "Damage assessment",
    "state": "FL",
    "location": "Milton (Santa Rosa County)",
-   "detail": "Winds tore the roofs off an apartment complex and a high school gymnasium in Milton, per AccuWeather at 11:00 AM CT. The city is under a boil water notice and the National Guard is to help at six intersections. No count of damaged homes.",
+   "detail": "Winds tore the roofs off an apartment complex and a high school gymnasium in Milton, per AccuWeather at 11:00 AM CT. The city is under a boil water notice and officials said full utility restoration could take several days. No count of damaged homes.",
    "status": "Reported",
-   "as_of": "Sat 12:55 PM CT",
+   "as_of": "Sat 1:53 PM CT",
    "source": "AccuWeather",
    "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
   },
@@ -876,12 +905,12 @@ const SNAP = {
    "id": "r047",
    "category": "Fatality",
    "state": "All",
-   "location": "Florida or Alabama (possible fourth death; details not seen)",
-   "detail": "CNN and NBC News live-blog headlines now say at least four people have died across Florida and Alabama. Neither page could be opened this pull, so who confirmed a fourth death, and where, is not known; every source that could be read still counts three.",
-   "status": "Reported",
-   "as_of": "Sat 12:55 PM CT",
-   "source": "CNN (headline only); NBC News (headline only)",
-   "url": "https://www.cnn.com/2026/10/09/weather/live-news/hurricane-isaias-gulf-storm"
+   "location": "Escambia County, FL (carbon monoxide)",
+   "detail": "Fourth storm death: a man was found dead in an Escambia County home where a generator was running indoors without ventilation, per Sheriff Chip Simmons (FOX Weather, 12:48 PM CT). Four other people in the home were hospitalized with carbon monoxide poisoning. This is the fourth death CNN and NBC headlines referred to earlier; neither of those pages could be opened.",
+   "status": "Confirmed",
+   "as_of": "Sat 1:53 PM CT",
+   "source": "FOX Weather (Sheriff Simmons); AOL (Escambia County Sheriff's Office)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
   }
  ]
 };
