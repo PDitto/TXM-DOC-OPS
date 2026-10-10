@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isaias Impact Tracker</title>
+<meta name="description" content="Hurricane Isaias impacts: power outages, residential flooding, damage assessments and confirmed tornadoes.">
+<style>
+/* Layout: summary on top, five status tiles, outage chart beside state bars, then the report table and pull log. */
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --fg:#16212c; --muted:#5b6b7a; --line:#d7dee5;
+  --accent:#0f5f8c; --grid:#e6ebf0;
+  --bad:#b3261e; --warn:#8a5a00; --ok:#1d6b3a;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f161d; --panel:#17212b; --fg:#e7edf3; --muted:#9aa9b8; --line:#2a3744;
+    --accent:#6cb8e6; --grid:#22303c;
+    --bad:#ff8a80; --warn:#f2c063; --ok:#7fd49b;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.page{max-width:76rem;margin-inline:auto;padding-inline:clamp(16px,4vw,40px);padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+.head{display:flex;flex-direction:column;gap:6px}
+.kicker{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(1.7rem,4vw,2.3rem);line-height:1.15;text-wrap:balance}
+.takeaway{margin:4px 0 0;max-width:68ch;font-size:16px}
+.stamp{margin:0;color:var(--muted);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.label{margin:0;font-size:13px;color:var(--muted)}
+.big{font-family:var(--serif);font-size:2.25rem;line-height:1.1}
+.big-text{font-family:var(--serif);font-size:1.45rem;line-height:1.2;min-height:2.5rem;display:flex;align-items:center}
+.sub{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media (max-width:52rem){.grid{grid-template-columns:1fr}}
+h2{margin:0;font-size:16px;font-weight:600}
+.chart{position:relative;min-height:260px}
+.chart svg{display:block;width:100%}
+.tick{font-size:12px;fill:var(--muted)}
+.end{font-size:12px;fill:var(--fg);font-weight:600}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px 10px;font-size:12px;line-height:1.4;max-width:15rem}
+.tip-dim{color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:14px}
+.bar-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+.bar-track{height:12px;border-radius:6px;background:var(--grid);overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{overflow:auto;max-height:36rem}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.45}
+th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:600;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.detail{min-width:16rem}
+.num{text-align:right;white-space:nowrap}
+.nowrap{white-space:nowrap}
+a{color:var(--accent);text-underline-offset:2px}
+.st-bad{color:var(--bad);font-weight:600}
+.st-warn{color:var(--warn);font-weight:600}
+.st-ok{color:var(--ok);font-weight:600}
+.st-muted{color:var(--muted)}
+.foot{color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:6px}
+.foot p{margin:0;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="head">
+    <p class="kicker">Disaster Relief situation tracker</p>
+    <h1>Isaias Impact Tracker</h1>
+    <p class="takeaway" data-pull="takeaway">—</p>
+    <p class="stamp">Snapshot captured <span id="captured">—</span>. This page shows the data as of that time and does not update on its own.</p>
+    <p class="stamp">Storm now: <span data-pull="storm_status">—</span></p>
+  </header>
+
+  <section class="tiles" aria-label="Headline figures">
+    <div class="card">
+      <p class="label">Customers without power</p>
+      <div class="big" data-pull="outages_total">—</div>
+      <p class="sub">As of <span data-pull="outages_as_of">—</span>. <span data-pull="outages_note">—</span></p>
+    </div>
+    <div class="card">
+      <p class="label">Confirmed tornadoes</p>
+      <div class="big" data-pull="confirmed_tornadoes">—</div>
+      <p class="sub" data-pull="tornado_note">—</p>
+    </div>
+    <div class="card">
+      <p class="label">Residential flooding</p>
+      <div class="big-text" data-pull="flooding_headline">—</div>
+      <p class="sub" data-pull="flooding_note">—</p>
+    </div>
+    <div class="card">
+      <p class="label">Damage assessments</p>
+      <div class="big-text" data-pull="damage_headline">—</div>
+      <p class="sub" data-pull="damage_note">—</p>
+    </div>
+    <div class="card">
+      <p class="label">Storm deaths</p>
+      <div class="big" data-pull="deaths">—</div>
+      <p class="sub" data-pull="deaths_note">—</p>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="Power outages">
+    <div class="card">
+      <h2>Customers without power since landfall</h2>
+      <p class="sub">Florida, Alabama and Georgia combined, as reported by outage trackers. Readings come from two trackers, so small dips between points can be a source difference.</p>
+      <div class="chart" id="trend"></div>
+    </div>
+    <div class="card">
+      <h2>Outages by state</h2>
+      <p class="sub">Latest reading that gave a state breakdown: <span id="states-asof">—</span></p>
+      <div class="bars" id="states"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Impact reports</h2>
+    <p class="sub">Each row is one report. "Confirmed" means an official source said it. "Reported" means news or video without an official count.</p>
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Category</th><th>State</th><th>Location</th><th>What is known</th><th>Status</th><th>Checked</th><th>Source</th></tr></thead>
+        <tbody id="impacts"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Pull log</h2>
+    <p class="sub">One row per data pull, newest first, with what changed since the pull before.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Pulled</th><th class="num">Without power</th><th class="num">Confirmed tornadoes</th><th class="num">Deaths</th><th>What changed</th></tr></thead>
+        <tbody id="log"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Compiled from news live blogs, outage trackers and National Hurricane Center data. Tornadoes count as confirmed only when the National Weather Service confirms them. Figures are as reported at the times shown and will change.</p>
+    <p>To refresh this page, replace the <code>CAPTURED</code> line and the <code>SNAP</code> object in the data block near the bottom of this file. Nothing else needs to change.</p>
+  </footer>
+</div>
+
+<!-- ===== DATA BLOCK: replace CAPTURED and SNAP to refresh ===== -->
+<script>
+const CAPTURED = "Sat Oct 10, 9:46 AM CT";
+const SNAP = {
+ "pulls": [
+  {
+   "pulled_at": "2026-10-10T14:46:00Z",
+   "pulled_label": "Sat Oct 10, 9:46 AM CT",
+   "storm_status": "Post-tropical, 35 mph winds, over central Alabama moving north at 14 mph. NHC issued its final advisory at 4 AM CT.",
+   "outages_total": 889000,
+   "outages_peak": 940000,
+   "outages_as_of": "Sat 9:19 AM CT",
+   "outages_note": "Down from a peak near 940,000. Florida, Alabama and Georgia combined.",
+   "confirmed_tornadoes": 0,
+   "tornado_note": "One warning Friday in Gulf and Franklin counties, FL. No NWS survey results yet.",
+   "deaths": 2,
+   "deaths_note": "Escambia County, FL and East Birmingham, AL. Both from trees falling on homes.",
+   "flooding_headline": "No home counts yet",
+   "flooding_note": "Water in homes reported in Fort Walton Beach (2 to 3 feet). Surge flooding near Pensacola Bay.",
+   "damage_headline": "Assessments started",
+   "damage_note": "Teams out in Escambia County, Panama City Beach, Navarre and Destin. No totals released.",
+   "takeaway": "Isaias came ashore near Destin Friday about 8:30 PM CT as a Category 2. About 889,000 customers are without power, two people are dead, and no tornado has been confirmed. Damage assessments began this morning and no home counts are out yet.",
+   "changes": "First pull. Baseline set."
+  }
+ ],
+ "outages": [
+  {
+   "time_utc": "2026-10-09T22:34:00Z",
+   "time_label": "Fri 5:34 PM CT",
+   "total": 140000,
+   "florida": 75000,
+   "alabama": 67000,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-09T23:24:00Z",
+   "time_label": "Fri 6:24 PM CT",
+   "total": 250000,
+   "florida": 182000,
+   "alabama": 77000,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-09T23:59:00Z",
+   "time_label": "Fri 6:59 PM CT",
+   "total": 340000,
+   "florida": 250000,
+   "alabama": 93000,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T00:45:00Z",
+   "time_label": "Fri 7:45 PM CT",
+   "total": 418000,
+   "florida": 303000,
+   "alabama": 115000,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T03:14:00Z",
+   "time_label": "Fri 10:14 PM CT",
+   "total": 600000,
+   "florida": 375000,
+   "alabama": 215000,
+   "georgia": 10000,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T04:31:00Z",
+   "time_label": "Fri 11:31 PM CT",
+   "total": 650000,
+   "florida": null,
+   "alabama": null,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T05:51:00Z",
+   "time_label": "Sat 12:51 AM CT",
+   "total": 760000,
+   "florida": null,
+   "alabama": null,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T09:00:00Z",
+   "time_label": "Sat 4:00 AM CT",
+   "total": 834061,
+   "florida": 436443,
+   "alabama": 314540,
+   "georgia": 83078,
+   "source": "CBS News (PowerOutage.us)",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "time_utc": "2026-10-10T10:55:00Z",
+   "time_label": "Sat 5:55 AM CT",
+   "total": 900000,
+   "florida": null,
+   "alabama": null,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T11:38:00Z",
+   "time_label": "Sat 6:38 AM CT",
+   "total": 884000,
+   "florida": 430443,
+   "alabama": 326057,
+   "georgia": 127905,
+   "source": "CBS News (PowerOutage.us)",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "time_utc": "2026-10-10T12:29:00Z",
+   "time_label": "Sat 7:29 AM CT",
+   "total": 929000,
+   "florida": null,
+   "alabama": null,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "time_utc": "2026-10-10T14:19:00Z",
+   "time_label": "Sat 9:19 AM CT",
+   "total": 889000,
+   "florida": null,
+   "alabama": null,
+   "georgia": null,
+   "source": "FOX Weather (PowerOutage.com)",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  }
+ ],
+ "impacts": [
+  {
+   "id": "r001",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Escambia County / Pensacola Beach",
+   "detail": "County damage assessment teams started Saturday morning. Damaged hotels, homes and boats visible at daylight; heavy debris on Via de Luna. No counts released.",
+   "status": "Underway",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r002",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Panama City Beach",
+   "detail": "Damage assessment and cleanup underway. No counts released.",
+   "status": "Underway",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r003",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Navarre and Destin",
+   "detail": "Local outlets report damage assessments starting. Headline only, no figures.",
+   "status": "Underway",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX10 Mobile",
+   "url": "https://www.fox10tv.com/2026/10/10/isaias-leaves-trail-darkness-flooding-across-florida-panhandle-alabama/"
+  },
+  {
+   "id": "r004",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Pensacola",
+   "detail": "Roof torn off the Rest and Relax Inn. Downed trees, flipped trucks, shattered streetlights and debris downtown. Peak gust 102 mph at City Hall.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r005",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Jay (Santa Rosa County)",
+   "detail": "118 mph gust, the highest reported. Pine trees snapped in half around a home.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r006",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "East Milton (Santa Rosa County)",
+   "detail": "Convenience store heavily damaged. Headline only.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX10 Mobile",
+   "url": "https://www.fox10tv.com/2026/10/10/isaias-leaves-trail-darkness-flooding-across-florida-panhandle-alabama/"
+  },
+  {
+   "id": "r007",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Crestview (Okaloosa County)",
+   "detail": "Gas station canopy collapsed.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "The Weather Channel",
+   "url": "https://weather.com/2026/10/09/storms/hurricane/liveblogs/live-updates-isaias-gets-stronger"
+  },
+  {
+   "id": "r008",
+   "category": "Damage assessment",
+   "state": "FL",
+   "location": "Destin",
+   "detail": "Beach boardwalk torn away by surge.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r009",
+   "category": "Damage assessment",
+   "state": "AL",
+   "location": "Escambia County, AL",
+   "detail": "Mobile home destroyed; power lines and trees down. Headline only, article could not be opened.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "WKRG",
+   "url": "https://www.wkrg.com/alabama-news/escambia-county-alabama/hurricane-isaias-escambia-county-damage/"
+  },
+  {
+   "id": "r010",
+   "category": "Damage assessment",
+   "state": "AL",
+   "location": "Houston County (Dothan area)",
+   "detail": "All roads closed early Saturday for downed trees, power lines and flooding. Major outages.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "CBS News",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "id": "r011",
+   "category": "Damage assessment",
+   "state": "AL",
+   "location": "Mobile",
+   "detail": "Trees and power lines down, including McVay Drive.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX10 Mobile",
+   "url": "https://www.fox10tv.com/2026/10/10/isaias-leaves-trail-darkness-flooding-across-florida-panhandle-alabama/"
+  },
+  {
+   "id": "r012",
+   "category": "Damage assessment",
+   "state": "AL",
+   "location": "Central Alabama highways",
+   "detail": "Trees or lines across US-31 (Chilton), US-82 (Autauga), US-231 (Elmore), US-80 (Montgomery), AL-22 (Coosa), and roads in Tallapoosa and Lee counties, per ALEA.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "ABC 33/40",
+   "url": "https://abc3340.com/news/local/weather-will-go-downhill-quickly-isaias-closes-in-on-alabama"
+  },
+  {
+   "id": "r013",
+   "category": "Damage assessment",
+   "state": "AL",
+   "location": "Orange Beach",
+   "detail": "Damage described as minimal. Roads set to reopen Saturday morning.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r014",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "Fort Walton Beach",
+   "detail": "2 to 3 feet of flooding. Video shows water entering homes and businesses; residents stranded and cars submerged. No count of homes.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r015",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "Southern Okaloosa County (Fort Walton Beach, Destin, Niceville)",
+   "detail": "Flash Flood Emergency Friday night. More than 6 inches of rain, with rates up to 4.5 inches per hour.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r016",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "Pensacola",
+   "detail": "Low-lying areas near Pensacola Bay flooded from surge. Some bayfront residents had already left.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r017",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "Destin",
+   "detail": "Roads flooded. Surge overtopped fences and beach walkways.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX10 Mobile",
+   "url": "https://www.fox10tv.com/2026/10/10/isaias-leaves-trail-darkness-flooding-across-florida-panhandle-alabama/"
+  },
+  {
+   "id": "r018",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "Panama City Beach",
+   "detail": "Surge gauge peaked 5.6 feet above normal Friday night.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r019",
+   "category": "Residential flooding",
+   "state": "FL",
+   "location": "DeFuniak Springs (Walton County)",
+   "detail": "12.46 inches of rain by late Friday.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r020",
+   "category": "Residential flooding",
+   "state": "AL",
+   "location": "Bellwood (Geneva County) and southern Alabama",
+   "detail": "More than a foot of rain at Bellwood. Parts of southern Alabama flooded; flash flood warning in Houston County.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r021",
+   "category": "Residential flooding",
+   "state": "GA",
+   "location": "North Georgia and Blue Ridge (Atlanta to Asheville)",
+   "detail": "Level 3 of 4 flood risk Saturday. Another 4 to 8 inches forecast across the Southeast, locally up to 15.",
+   "status": "Forecast",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r022",
+   "category": "Tornado",
+   "state": "All",
+   "location": "FL, AL, GA",
+   "detail": "No tornado has been confirmed by the National Weather Service. No survey results or EF ratings published.",
+   "status": "None confirmed",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "CBS News",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "id": "r023",
+   "category": "Tornado",
+   "state": "FL",
+   "location": "Gulf and Franklin counties",
+   "detail": "Tornado warning Friday afternoon for radar rotation near St. George Island, moving toward Apalachicola and Eastpoint. No touchdown confirmed.",
+   "status": "Not confirmed",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r024",
+   "category": "Tornado",
+   "state": "GA",
+   "location": "Eastern Panhandle, Georgia, Carolinas",
+   "detail": "NHC keeps a tornado risk through Saturday afternoon.",
+   "status": "Forecast",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "CBS News",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "id": "r025",
+   "category": "Power",
+   "state": "FL",
+   "location": "Escambia County, FL",
+   "detail": "About 116,000 Florida Power & Light customers still out at 8:40 AM CT.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r026",
+   "category": "Power",
+   "state": "FL",
+   "location": "Escambia County, FL (ECUA)",
+   "detail": "Systemwide precautionary boil water notice.",
+   "status": "Active",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "AccuWeather",
+   "url": "https://www.accuweather.com/en/hurricane/live-news/live-isaias-drenches-southeast-after-landfall-as-flash-flooding-power-outages-mount/1943589"
+  },
+  {
+   "id": "r027",
+   "category": "Power",
+   "state": "AL",
+   "location": "Alabama Power territory",
+   "detail": "About 5,700 extra crew members from 25 states brought in for restoration.",
+   "status": "Reported",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r028",
+   "category": "Fatality",
+   "state": "FL",
+   "location": "Escambia County, FL",
+   "detail": "Woman killed when a large tree fell on her home, per Sheriff Chip Simmons.",
+   "status": "Confirmed",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "CBS News",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "id": "r029",
+   "category": "Fatality",
+   "state": "AL",
+   "location": "East Birmingham",
+   "detail": "One person killed when a tree fell on a house overnight, per the county EMA director.",
+   "status": "Confirmed",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r030",
+   "category": "Response",
+   "state": "All",
+   "location": "Florida and Alabama",
+   "detail": "Federal emergency declarations approved Friday night. Alabama's covers Baldwin, Escambia and Mobile counties and the Poarch Band of Creek Indians. 75% federal share for emergency protective measures.",
+   "status": "Active",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX Weather",
+   "url": "https://www.foxweather.com/live-news/live-updates-hurricane-isaias-threatens-the-gulf-coast-with-dangerous-landfall-expected-tonight"
+  },
+  {
+   "id": "r031",
+   "category": "Response",
+   "state": "All",
+   "location": "FL, AL, GA",
+   "detail": "State emergencies: Florida 25 counties, Alabama 40 counties, Georgia declared (county count not given).",
+   "status": "Active",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "CBS News",
+   "url": "https://www.cbsnews.com/live-updates/isaias-southeastern-u-s-gulf-coast/"
+  },
+  {
+   "id": "r032",
+   "category": "Response",
+   "state": "All",
+   "location": "Gulf Coast",
+   "detail": "Red Cross has 140+ volunteers deployed with a headquarters and warehouse in Mobile. Water and tarp distribution for Okaloosa residents Saturday.",
+   "status": "Active",
+   "as_of": "Sat 9:46 AM CT",
+   "source": "FOX10 Mobile",
+   "url": "https://www.fox10tv.com/2026/10/10/isaias-leaves-trail-darkness-flooding-across-florida-panhandle-alabama/"
+  }
+ ]
+};
+</script>
+<!-- ===== END DATA BLOCK ===== -->
+
+<script>
+(function () {
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var num = function (v) { return Number(v).toLocaleString('en-US'); };
+  var tickFmt = new Intl.DateTimeFormat('en-US', {timeZone: 'America/Chicago', weekday: 'short', hour: 'numeric'});
+  var category = 'All';
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = String(text);
+    return e;
+  }
+  function svg(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function byKey(key, dir) {
+    return function (a, b) { return dir * String(a[key]).localeCompare(String(b[key])); };
+  }
+
+  var pulls = (SNAP.pulls || []).slice().sort(byKey('pulled_at', 1));
+  var latest = pulls[pulls.length - 1];
+
+  function drawHead() {
+    document.getElementById('captured').textContent = CAPTURED;
+    if (!latest) return;
+    document.querySelectorAll('[data-pull]').forEach(function (node) {
+      var v = latest[node.getAttribute('data-pull')];
+      node.textContent = v == null || v === '' ? '—' : (typeof v === 'number' ? num(v) : String(v));
+    });
+  }
+
+  function niceStep(max, count) {
+    var raw = max / count;
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var f = raw / pow;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow;
+  }
+  function shortNum(v) {
+    if (v >= 1e6) return (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + 'M';
+    if (v >= 1e3) return Math.round(v / 1e3) + 'k';
+    return String(v);
+  }
+
+  function drawTrend() {
+    var box = document.getElementById('trend');
+    box.replaceChildren();
+    var rows = (SNAP.outages || []).map(function (r) {
+      return {t: new Date(r.time_utc).getTime(), total: Number(r.total), label: r.time_label, source: r.source};
+    }).filter(function (r) { return isFinite(r.t) && isFinite(r.total); }).sort(function (a, b) { return a.t - b.t; });
+    var W = box.clientWidth, H = 260;
+    if (!rows.length || !W) return;
+
+    var maxV = Math.max.apply(null, rows.map(function (r) { return r.total; }));
+    var step = niceStep(maxV * 1.05, 4);
+    var top = Math.ceil(maxV * 1.05 / step) * step;
+    var yTicks = [];
+    for (var v = 0; v <= top + 1; v += step) yTicks.push(v);
+    var last = rows[rows.length - 1];
+
+    var root = svg('svg', {viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Customers without power over time'});
+    box.append(root);
+
+    // Measure labels as drawn, so the margins fit them.
+    var probe = svg('g', {});
+    root.append(probe);
+    var tickW = 0;
+    yTicks.forEach(function (t) {
+      var n = svg('text', {class: 'tick'});
+      n.textContent = shortNum(t);
+      probe.append(n);
+      tickW = Math.max(tickW, n.getComputedTextLength());
+    });
+    var endProbe = svg('text', {class: 'end'});
+    endProbe.textContent = num(last.total);
+    probe.append(endProbe);
+    var endW = endProbe.getComputedTextLength();
+    probe.remove();
+
+    var left = Math.ceil(tickW) + 12, right = Math.ceil(endW) + 16, y0 = H - 30, y1 = 14;
+    var t0 = rows[0].t, t1 = last.t, span = Math.max(1, t1 - t0);
+    var x = function (t) { return left + (t - t0) / span * (W - left - right); };
+    var y = function (val) { return y0 - val / top * (y0 - y1); };
+
+    yTicks.forEach(function (t) {
+      root.append(svg('line', {x1: left, x2: W - right, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--muted)' : 'var(--grid)', 'stroke-width': 1}));
+      var n = svg('text', {class: 'tick', x: left - 8, y: y(t), dy: '0.32em', 'text-anchor': 'end'});
+      n.textContent = shortNum(t);
+      root.append(n);
+    });
+
+    // Hour ticks aligned to Central Time (UTC-5 during this event).
+    var HOUR = 3600000, CT = -5 * HOUR;
+    var maxTicks = Math.max(2, Math.floor((W - left - right) / 110));
+    var steps = [1, 2, 3, 4, 6, 12, 24, 48];
+    var hStep = steps[steps.length - 1];
+    for (var i = 0; i < steps.length; i++) {
+      if (span / (steps[i] * HOUR) <= maxTicks) { hStep = steps[i]; break; }
+    }
+    var first = Math.ceil((t0 + CT) / (hStep * HOUR)) * hStep * HOUR - CT;
+    for (var t = first; t <= t1; t += hStep * HOUR) {
+      var xt = svg('text', {class: 'tick', x: x(t), y: H - 8, 'text-anchor': 'middle'});
+      xt.textContent = tickFmt.format(new Date(t));
+      root.append(xt);
+    }
+
+    var d = rows.map(function (r, idx) { return (idx ? 'L' : 'M') + x(r.t).toFixed(1) + ',' + y(r.total).toFixed(1); }).join('');
+    root.append(svg('path', {d: d, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}));
+    rows.forEach(function (r) {
+      root.append(svg('circle', {cx: x(r.t), cy: y(r.total), r: r === last ? 4.5 : 2.5, fill: 'var(--accent)'}));
+    });
+    var endLabel = svg('text', {class: 'end', x: x(last.t) + 9, y: y(last.total), dy: '0.32em'});
+    endLabel.textContent = num(last.total);
+    root.append(endLabel);
+
+    var ring = svg('circle', {r: 6, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2, visibility: 'hidden'});
+    root.append(ring);
+    var tip = el('div', 'tip');
+    tip.hidden = true;
+    box.append(tip);
+    var hit = svg('rect', {x: 0, y: 0, width: W, height: H, fill: 'transparent'});
+    root.append(hit);
+    hit.addEventListener('pointermove', function (event) {
+      var px = event.clientX - root.getBoundingClientRect().left;
+      var near = rows.reduce(function (a, b) { return Math.abs(x(b.t) - px) < Math.abs(x(a.t) - px) ? b : a; });
+      ring.setAttribute('cx', x(near.t));
+      ring.setAttribute('cy', y(near.total));
+      ring.setAttribute('visibility', 'visible');
+      tip.replaceChildren(el('div', 'tip-dim', near.label), el('div', '', num(near.total) + ' customers out'), el('div', 'tip-dim', near.source));
+      tip.hidden = false;
+      var tw = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(W - tw, x(near.t) - tw / 2)) + 'px';
+      tip.style.top = Math.max(0, y(near.total) - tip.offsetHeight - 12) + 'px';
+    });
+    hit.addEventListener('pointerleave', function () { tip.hidden = true; ring.setAttribute('visibility', 'hidden'); });
+  }
+
+  function drawStates() {
+    var box = document.getElementById('states');
+    box.replaceChildren();
+    var withStates = (SNAP.outages || []).filter(function (r) {
+      return r.florida != null && r.alabama != null && r.georgia != null;
+    }).sort(byKey('time_utc', 1));
+    var lastRow = withStates[withStates.length - 1];
+    document.getElementById('states-asof').textContent = lastRow ? lastRow.time_label : '—';
+    if (!lastRow) return;
+    var rows = [['Florida', lastRow.florida], ['Alabama', lastRow.alabama], ['Georgia', lastRow.georgia]];
+    var max = Math.max.apply(null, rows.map(function (r) { return Number(r[1]); })) || 1;
+    rows.forEach(function (r) {
+      var row = el('div');
+      var topLine = el('div', 'bar-top');
+      topLine.append(el('span', '', r[0]), el('span', '', num(r[1])));
+      var track = el('div', 'bar-track');
+      var fill = el('div', 'bar-fill');
+      fill.style.width = (100 * Number(r[1]) / max) + '%';
+      track.append(fill);
+      row.append(topLine, track);
+      box.append(row);
+    });
+  }
+
+  function statusClass(s) {
+    var t = String(s || '').toLowerCase();
+    if (t === 'confirmed') return 'st-bad';
+    if (t === 'underway' || t === 'active') return 'st-warn';
+    if (t === 'none confirmed' || t === 'complete') return 'st-ok';
+    if (t === 'forecast' || t === 'not confirmed') return 'st-muted';
+    return '';
+  }
+
+  function drawImpacts() {
+    var rows = SNAP.impacts || [];
+    var cats = ['All'];
+    rows.forEach(function (r) { if (cats.indexOf(r.category) < 0) cats.push(r.category); });
+    if (cats.indexOf(category) < 0) category = 'All';
+    var chips = document.getElementById('chips');
+    chips.replaceChildren.apply(chips, cats.map(function (c) {
+      var b = el('button', 'chip', c);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(c === category));
+      b.addEventListener('click', function () { category = c; drawImpacts(); });
+      return b;
+    }));
+    var body = document.getElementById('impacts');
+    body.replaceChildren.apply(body, rows.filter(function (r) {
+      return category === 'All' || r.category === category;
+    }).map(function (r) {
+      var tr = el('tr');
+      var src = el('td');
+      if (/^https:\/\//.test(String(r.url || ''))) {
+        var a = el('a', '', r.source);
+        a.href = r.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        src.append(a);
+      } else {
+        src.textContent = r.source == null ? '' : String(r.source);
+      }
+      tr.append(el('td', 'nowrap', r.category), el('td', '', r.state), el('td', '', r.location), el('td', 'detail', r.detail),
+        el('td', 'nowrap ' + statusClass(r.status), r.status), el('td', 'nowrap', r.as_of), src);
+      return tr;
+    }));
+  }
+
+  function drawLog() {
+    var body = document.getElementById('log');
+    var n = function (v) { return typeof v === 'number' ? num(v) : (v == null ? '' : String(v)); };
+    body.replaceChildren.apply(body, pulls.slice().reverse().map(function (r) {
+      var tr = el('tr');
+      tr.append(el('td', 'nowrap', r.pulled_label), el('td', 'num', n(r.outages_total)), el('td', 'num', n(r.confirmed_tornadoes)),
+        el('td', 'num', n(r.deaths)), el('td', 'detail', r.changes));
+      return tr;
+    }));
+  }
+
+  drawHead();
+  drawTrend();
+  drawStates();
+  drawImpacts();
+  drawLog();
+  var timer;
+  window.addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(drawTrend, 120); });
+})();
+</script>
+</body>
+</html>
