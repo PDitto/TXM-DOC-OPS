@@ -173,12 +173,12 @@
 
 <script>
 /* ============================ SNAPSHOT (captured 2026-10-08 ~16:15 UTC) ============================ */
-const CAPTURED = "8 Oct 2026 16:15 UTC";
+const CAPTURED = "10 Oct 2026 19:40 UTC";
 const SNAP = {
   hurricanes: [
-    {name:"Hurricane Isaias", cls:"Hurricane (Cat 1)", winds:70, pres:979, lat:"23.3N", lon:"91.2W", mv:"ENE @ 9 kt", basin:"Gulf of Mexico", sev:"extreme"},
-    {name:"Tropical Storm Rachel", cls:"Tropical Storm", winds:60, pres:985, lat:"21.8N", lon:"123.9W", mv:"WNW @ 8 kt", basin:"E Pacific", sev:"severe"},
-    {name:"Tropical Storm Simon", cls:"Tropical Storm", winds:45, pres:1000, lat:"15.4N", lon:"103.1W", mv:"W @ 7 kt", basin:"E Pacific", sev:"severe"}
+    {name:"Post-Tropical Cyclone Isaias", cls:"Post-Tropical Cyclone", winds:30, pres:1002, lat:"32.0N", lon:"86.5W", mv:"N @ 14 kt", basin:"Inland Southeast U.S.", sev:"severe"},
+    {name:"Tropical Storm Rachel", cls:"Tropical Storm", winds:50, pres:992, lat:"24.2N", lon:"121.4W", mv:"NE @ 22 kt", basin:"E Pacific", sev:"severe"},
+    {name:"Hurricane Simon", cls:"Hurricane (Cat 4)", winds:125, pres:942, lat:"17.2N", lon:"104.6W", mv:"N @ 5 kt", basin:"E Pacific", sev:"extreme"}
   ],
   firesUS: [
     {name:"Bull", loc:"Washoe, NV", acres:1529, date:"2026-10-02"},
@@ -199,15 +199,20 @@ const SNAP = {
     {name:"Colwash", loc:"Yakima, WA", acres:38599, date:"2026-08-22"}
   ],
   firesGlobal: [ /* EONET severeStorms = worldwide tropical/severe systems, past ~2 wks */
-    {name:"Super Typhoon Choi-wan", basin:"W Pacific", peak:135, date:"2026-10-05"},
-    {name:"Hurricane Rachel", basin:"E Pacific", peak:105, date:"2026-10-05"},
-    {name:"Hurricane Nolo", basin:"Central Pacific", peak:135, date:"2026-10-05"},
-    {name:"Super Typhoon Surigae", basin:"W Pacific", peak:130, date:"2026-09-30"},
-    {name:"Tropical Storm Fay", basin:"Atlantic", peak:60, date:"2026-09-29"},
-    {name:"Tropical Storm Hanna", basin:"Atlantic", peak:40, date:"2026-09-30"},
-    {name:"Tropical Storm Gonzalo", basin:"Atlantic", peak:45, date:"2026-09-26"}
+    {name:"Hurricane Simon", basin:"E Pacific", peak:105, date:"2026-10-10"},
+    {name:"Typhoon Koguma", basin:"W Pacific", peak:110, date:"2026-10-10"},
+    {name:"Hurricane Rachel", basin:"E Pacific", peak:105, date:"2026-10-10"},
+    {name:"Hurricane Nolo", basin:"W Pacific", peak:135, date:"2026-10-10"},
+    {name:"Hurricane Isaias", basin:"Atlantic", peak:95, date:"2026-10-09"},
+    {name:"Super Typhoon Choi-wan", basin:"W Pacific", peak:135, date:"2026-10-06"},
+    {name:"Tropical Storm Hanna", basin:"Atlantic", peak:40, date:"2026-09-30"}
   ],
   quakes: [
+    {mag:6.0, place:"7 km N of La Tronosa, Panama", t:1791605641786},
+    {mag:6.6, place:"14 km W of Río Grande, Panama", t:1791577539080},
+    {mag:5.8, place:"1 km S of El Cacao, Panama", t:1791571066146},
+    {mag:7.7, place:"12 km WSW of Pitaloza Arriba, Panama", t:1791568566036},
+    {mag:6.3, place:"102 km NE of Norsup, Vanuatu", t:1791450007768},
     {mag:5.5, place:"92 km NNW of Aleneva, Alaska", t:1791311671760},
     {mag:4.7, place:"5 km NNE of Korumburra, Australia", t:1790956899581},
     {mag:4.2, place:"6 km WNW of Wauna, Washington", t:1790715956370},
@@ -218,13 +223,14 @@ const SNAP = {
   ],
   fema: [ /* unique federal declarations, newest first, since ~Sep 1 2026 */
     {num:4950, state:"OK", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storm and straight-line winds"},
-    {num:4946, state:"GU", type:"DR", date:"2026-10-07", inc:"Typhoon", title:"Super Typhoon Bavi"},
-    {num:4948, state:"UT", type:"DR", date:"2026-10-07", inc:"Flood", title:"Cottonwood Fire, flooding, and mudslides"},
-    {num:4953, state:"WV", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storms and flooding"},
     {num:4949, state:"WI", type:"DR", date:"2026-10-07", inc:"Tornado", title:"Severe storms and tornadoes"},
-    {num:4951, state:"HI", type:"DR", date:"2026-10-07", inc:"Hurricane", title:"Hurricane Lala"},
-    {num:4954, state:"NM", type:"DR", date:"2026-10-07", inc:"Flood", title:"Severe storms and flooding"},
+    {num:4953, state:"WV", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storms and flooding"},
+    {num:4948, state:"UT", type:"DR", date:"2026-10-07", inc:"Flood", title:"Cottonwood Fire, flooding, and mudslides"},
     {num:4947, state:"NH", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storm and flooding"},
+    {num:4952, state:"HI", type:"DR", date:"2026-10-07", inc:"Hurricane", title:"Hurricane Lowell"},
+    {num:4954, state:"NM", type:"DR", date:"2026-10-07", inc:"Flood", title:"Severe storms and flooding"},
+    {num:4951, state:"HI", type:"DR", date:"2026-10-07", inc:"Hurricane", title:"Hurricane Lala"},
+    {num:4946, state:"GU", type:"DR", date:"2026-10-07", inc:"Typhoon", title:"Super Typhoon Bavi"},
     {num:4945, state:"OH", type:"DR", date:"2026-10-02", inc:"Flood", title:"Severe storms, winds, tornadoes, flooding, landslides"},
     {num:5678, state:"NV", type:"FM", date:"2026-10-02", inc:"Fire", title:"Bull Fire"},
     {num:3654, state:"HI", type:"EM", date:"2026-09-25", inc:"Tropical Storm", title:"Tropical Storm Nolo"},
@@ -233,13 +239,12 @@ const SNAP = {
     {num:4937, state:"KY", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, flooding, landslides, mudslides"},
     {num:4935, state:"TX", type:"DR", date:"2026-09-01", inc:"Flood", title:"Severe storms, winds, tornadoes, flooding"},
     {num:4939, state:"MO", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, straight-line winds, flooding"},
-    {num:4943, state:"KS", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
     {num:4940, state:"KS", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
+    {num:4943, state:"KS", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
     {num:4936, state:"HI", type:"DR", date:"2026-09-01", inc:"Earthquake", title:"Earthquake"},
     {num:4938, state:"SD", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, tornadoes, flooding"},
     {num:4942, state:"IA", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms and flooding"},
-    {num:4944, state:"CO", type:"DR", date:"2026-09-01", inc:"Fire", title:"Wildfires, flooding, and mudslides"},
-    {num:4941, state:"SD", type:"DR", date:"2026-09-01", inc:"Severe Storm", title:"Severe storms, straight-line winds, flooding"}
+    {num:4944, state:"CO", type:"DR", date:"2026-09-01", inc:"Fire", title:"Wildfires, flooding, and mudslides"}
   ]
 };
 
