@@ -173,14 +173,15 @@
 
 <script>
 /* ============================ SNAPSHOT (captured 2026-10-08 ~16:15 UTC) ============================ */
-const CAPTURED = "10 Oct 2026 19:40 UTC";
+const CAPTURED = "14 Oct 2026 11:55 UTC";
 const SNAP = {
   hurricanes: [
-    {name:"Post-Tropical Cyclone Isaias", cls:"Post-Tropical Cyclone", winds:30, pres:1002, lat:"32.0N", lon:"86.5W", mv:"N @ 14 kt", basin:"Inland Southeast U.S.", sev:"severe"},
-    {name:"Tropical Storm Rachel", cls:"Tropical Storm", winds:50, pres:992, lat:"24.2N", lon:"121.4W", mv:"NE @ 22 kt", basin:"E Pacific", sev:"severe"},
-    {name:"Hurricane Simon", cls:"Hurricane (Cat 4)", winds:125, pres:942, lat:"17.2N", lon:"104.6W", mv:"N @ 5 kt", basin:"E Pacific", sev:"extreme"}
+    {name:"Hurricane Simon", cls:"Hurricane (Cat 2)", winds:90, pres:969, lat:"19.8N", lon:"107.9W", mv:"SW @ 3 kt", basin:"E Pacific", sev:"extreme"},
+    {name:"Tropical Storm Trudy", cls:"Tropical Storm", winds:45, pres:1002, lat:"11.1N", lon:"99.0W", mv:"WNW @ 9 kt", basin:"E Pacific", sev:"severe"}
   ],
   firesUS: [
+    {name:"Jones", loc:"Elko, NV", acres:1657, date:"2026-10-05"},
+    {name:"Bouquet", loc:"Los Angeles, CA", acres:1048, date:"2026-10-03"},
     {name:"Bull", loc:"Washoe, NV", acres:1529, date:"2026-10-02"},
     {name:"San Francisco 2", loc:"Starr, TX", acres:510, date:"2026-09-30"},
     {name:"Hatch Grade", loc:"Walla Walla, WA", acres:5000, date:"2026-09-29"},
@@ -189,25 +190,26 @@ const SNAP = {
     {name:"Second Street", loc:"Benton, WA", acres:1151, date:"2026-09-25"},
     {name:"Merit Creek", loc:"Greene, MS", acres:828, date:"2026-09-23"},
     {name:"Round Prairie", loc:"Morehouse, LA", acres:739, date:"2026-09-20"},
+    {name:"Breezy", loc:"Starr, TX", acres:500, date:"2026-09-16"},
+    {name:"Floriston", loc:"Nevada, CA", acres:610, date:"2026-09-16"},
     {name:"Clark", loc:"Edwards, TX", acres:1523, date:"2026-09-16"},
+    {name:"Calvary Creek", loc:"Washita, OK", acres:906, date:"2026-09-15"},
     {name:"Dry River", loc:"Sutton, TX", acres:8761, date:"2026-09-15"},
-    {name:"Davis Coulee", loc:"Big Horn, MT", acres:15470, date:"2026-09-14"},
-    {name:"Star Lake", loc:"Jefferson, TX", acres:16412, date:"2026-09-11"},
-    {name:"Needles", loc:"Oglala Lakota, SD", acres:6018, date:"2026-09-04"},
-    {name:"Rattlesnake Complex", loc:"Prairie, MT", acres:15582, date:"2026-09-04"},
-    {name:"Ross", loc:"Palo Pinto, TX", acres:80000, date:"2026-08-24"},
-    {name:"Colwash", loc:"Yakima, WA", acres:38599, date:"2026-08-22"}
+    {name:"Blue Lake", loc:"Indian River, FL", acres:950, date:"2026-09-15"}
   ],
   firesGlobal: [ /* EONET severeStorms = worldwide tropical/severe systems, past ~2 wks */
-    {name:"Hurricane Simon", basin:"E Pacific", peak:105, date:"2026-10-10"},
-    {name:"Typhoon Koguma", basin:"W Pacific", peak:110, date:"2026-10-10"},
-    {name:"Hurricane Rachel", basin:"E Pacific", peak:105, date:"2026-10-10"},
+    {name:"Hurricane Simon", basin:"E Pacific", peak:135, date:"2026-10-11"},
+    {name:"Typhoon Koguma", basin:"W Pacific", peak:120, date:"2026-10-11"},
+    {name:"Cyclone Rachel", basin:"E Pacific", peak:105, date:"2026-10-11"},
+    {name:"Hurricane Isaias", basin:"Atlantic", peak:105, date:"2026-10-10"},
     {name:"Hurricane Nolo", basin:"W Pacific", peak:135, date:"2026-10-10"},
-    {name:"Hurricane Isaias", basin:"Atlantic", peak:95, date:"2026-10-09"},
     {name:"Super Typhoon Choi-wan", basin:"W Pacific", peak:135, date:"2026-10-06"},
     {name:"Tropical Storm Hanna", basin:"Atlantic", peak:40, date:"2026-09-30"}
   ],
   quakes: [
+    {mag:6.8, place:"central Mid-Atlantic Ridge", t:1791894187248},
+    {mag:6.7, place:"central Mid-Atlantic Ridge", t:1791870286919},
+    {mag:6.1, place:"17 km W of Río Grande, Panama", t:1791847236003},
     {mag:6.0, place:"7 km N of La Tronosa, Panama", t:1791605641786},
     {mag:6.6, place:"14 km W of Río Grande, Panama", t:1791577539080},
     {mag:5.8, place:"1 km S of El Cacao, Panama", t:1791571066146},
@@ -215,11 +217,10 @@ const SNAP = {
     {mag:6.3, place:"102 km NE of Norsup, Vanuatu", t:1791450007768},
     {mag:5.5, place:"92 km NNW of Aleneva, Alaska", t:1791311671760},
     {mag:4.7, place:"5 km NNE of Korumburra, Australia", t:1790956899581},
-    {mag:4.2, place:"6 km WNW of Wauna, Washington", t:1790715956370},
+    {mag:4.15, place:"6 km WNW of Wauna, Washington", t:1790715956370},
     {mag:6.6, place:"80 km ENE of Tadine, New Caledonia", t:1790371383309},
-    {mag:6.4, place:"49 km NNE of Kainantu, Papua New Guinea", t:1789895855624},
-    {mag:6.5, place:"177 km W of Nikolski, Alaska", t:1789654792472},
-    {mag:6.5, place:"121 km NNE of Teluknaga, Indonesia", t:1789161835815}
+    {mag:6.4, place:"50 km NNE of Kainantu, Papua New Guinea", t:1789895856531},
+    {mag:6.5, place:"177 km W of Nikolski, Alaska", t:1789654792472}
   ],
   fema: [ /* unique federal declarations, newest first, since ~Sep 1 2026 */
     {num:4950, state:"OK", type:"DR", date:"2026-10-07", inc:"Severe Storm", title:"Severe storm and straight-line winds"},
