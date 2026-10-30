@@ -173,12 +173,12 @@
 
 <script>
 /* ============================ SNAPSHOT (captured 2026-10-08 ~16:15 UTC) ============================ */
-const CAPTURED = "29 Oct 2026 11:49 UTC";
+const CAPTURED = "30 Oct 2026 12:44 UTC";
 const SNAP = {
   hurricanes: [
-    {name:"Tropical Storm Vance", cls:"Tropical Storm", winds:35, pres:1003, lat:"18.6N", lon:"108.6W", mv:"N @ 10 kt", basin:"E Pacific", sev:"severe"}
   ],
   firesUS: [
+    {name:"South Tank Trail", loc:"Perry, MS", acres:1000, date:"2026-10-28"},
     {name:"Range 47B", loc:"Forrest, MS", acres:636, date:"2026-10-24"},
     {name:"Bee Haven (2) (24-06)", loc:"Hamilton, FL", acres:2060, date:"2026-10-22"},
     {name:"Bras", loc:"Sanders, MT", acres:1688, date:"2026-10-17"},
@@ -193,18 +193,17 @@ const SNAP = {
     {name:"Bouquet", loc:"Los Angeles, CA", acres:1048, date:"2026-10-03"},
     {name:"Bull", loc:"Washoe, NV", acres:1529, date:"2026-10-02"},
     {name:"San Francisco 2", loc:"Starr, TX", acres:510, date:"2026-09-30"},
-    {name:"Hatch Grade", loc:"Walla Walla, WA", acres:5000, date:"2026-09-29"},
-    {name:"3 Alpha Sierra", loc:"Broward, FL", acres:774, date:"2026-09-28"}
+    {name:"Hatch Grade", loc:"Walla Walla, WA", acres:5000, date:"2026-09-29"}
   ],
   firesGlobal: [ /* EONET severeStorms = worldwide tropical/severe systems, past ~2 wks */
-    {name:"Super Typhoon In-fa", basin:"W Pacific", peak:130, date:"2026-10-28"},
-    {name:"Hurricane Vance", basin:"E Pacific", peak:100, date:"2026-10-28"},
+    {name:"Super Typhoon In-fa", basin:"W Pacific", peak:130, date:"2026-10-30"},
+    {name:"Hurricane Vance", basin:"E Pacific", peak:100, date:"2026-10-30"},
     {name:"Tropical Cyclone Arnab", basin:"N Indian", peak:120, date:"2026-10-28"},
     {name:"Tropical Storm Olana", basin:"C Pacific", peak:40, date:"2026-10-27"},
-    {name:"Super Typhoon Champi", basin:"W Pacific", peak:160, date:"2026-10-25"},
-    {name:"Tropical Cyclone Agueda", basin:"SW Indian", peak:55, date:"2026-10-23"}
+    {name:"Super Typhoon Champi", basin:"W Pacific", peak:160, date:"2026-10-25"}
   ],
   quakes: [
+    {mag:6.4, place:"southeast of Easter Island", t:1793260190928},
     {mag:6.5, place:"Bonin Islands, Japan region", t:1792894163818},
     {mag:6.3, place:"170 km NW of Port-Olry, Vanuatu", t:1792809357362},
     {mag:6.9, place:"197 km WNW of Port-Olry, Vanuatu", t:1792809088641},
@@ -222,8 +221,7 @@ const SNAP = {
     {mag:7.7, place:"12 km WSW of Pitaloza Arriba, Panama", t:1791568566036},
     {mag:6.3, place:"102 km NE of Norsup, Vanuatu", t:1791450007768},
     {mag:5.5, place:"92 km NNW of Aleneva, Alaska", t:1791311671760},
-    {mag:4.7, place:"5 km NNW of Korumburra, Australia", t:1790956899602},
-    {mag:4.15, place:"6 km WNW of Wauna, Washington", t:1790715956370}
+    {mag:4.7, place:"5 km NNW of Korumburra, Australia", t:1790956899602}
   ],
   fema: [ /* unique federal declarations, newest first, since ~Sep 1 2026 */
     {num:3659, state:"GU", type:"EM", date:"2026-10-17", inc:"Other", title:"Typhoon Champi"},
