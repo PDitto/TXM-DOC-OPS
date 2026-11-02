@@ -6,7 +6,6 @@ touch the page if the input looks wrong.
 
 | Page | Script | Source of the data | Runs |
 | --- | --- | --- | --- |
-| `Hurricane Isaias.html` | (script kept in the task) | Hourly news, outage and NHC pull | Hourly |
 | `disaster-watch.html` | `sync_disaster_watch.py` | Daily Disaster Watch snapshot refresh | Daily |
 | `fleet-status.html` | `publish_fleet_status.py` | Fleet Management and Unit Listing workbooks in Google Drive | Daily |
 | `fleet-locator.html` | `refresh_locator.py` | Unit Listing workbook (through the fleet status build) | Daily |
