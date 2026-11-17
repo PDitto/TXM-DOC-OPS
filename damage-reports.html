@@ -254,7 +254,8 @@ const DATA = {"captured":"2026-11-17T13:00:35Z","reports":[{"id":"hillcountry-fl
   // ---- map ----
   let map=null, layer=null;
   try{
-    map=L.map("map",{scrollWheelZoom:false,zoomSnap:.25}).setView([31.1,-99.6],5.5);
+    map=L.map("map",{scrollWheelZoom:false,zoomSnap:.25}).fitBounds([[25.8,-106.7],[36.6,-93.5]],{padding:[12,12]});
+    window.addEventListener("resize",()=>map.invalidateSize());
     // Keyless basemap: Esri dark gray canvas + labels. Falls back to OpenStreetMap if Esri tiles fail.
     const esri="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
     const base=L.tileLayer(esri+"World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:16,
