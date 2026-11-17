@@ -10,6 +10,7 @@ touch the page if the input looks wrong.
 | `fleet-status.html` | `publish_fleet_status.py` | Fleet Management and Unit Listing workbooks in Google Drive | Daily |
 | `fleet-locator.html` | `refresh_locator.py` | Unit Listing workbook (through the fleet status build) | Daily |
 | `dispatch-board.html` | `refresh_dispatch.py` | Rolling Stock Vehicles Google Sheet, first tab | Daily |
+| `damage-reports.html` | `build_damage_reports.py` | Web search of news, NWS, TDEM, county and FEMA sources | 07:00 and 19:00 CT |
 
 Notes
 
@@ -24,3 +25,8 @@ Notes
   one in the first `Old #` column) is renumbered on the board, not added again.
 - The dispatch board on this site has no shared database, so assignments made
   here stay in that browser. Only the unit list and statuses are refreshed.
+- `build_damage_reports.py` scores each report (damage 45%, impact on living
+  35%, media coverage 20%) and ranks the board. A report the latest search did
+  not find stays on until 30 days pass with no update. County-to-region codes
+  come from `damage-county-regions.json`; the starter entries are best guesses
+  and need confirming. The script prints a NOTE for any county not in it.

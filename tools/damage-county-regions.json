@@ -1,0 +1,20 @@
+{
+  "_note": "County -> TXM DR region code for the Damage Reports board. Starter entries are best guesses and need confirming; correct any line and add counties as they come up. Codes: 1W 1E 2N 2E 3E 3W 4A 4B 5E 5W 6A 6B 7N 7S.",
+  "El Paso": "6B",
+  "Hudspeth": "6B",
+  "Kerr": "5W",
+  "Kendall": "5W",
+  "Gillespie": "5W",
+  "Bandera": "5W",
+  "Comal": "5W",
+  "Bexar": "4A",
+  "Uvalde": "4A",
+  "Medina": "4A",
+  "Zavala": "4A",
+  "Frio": "4A",
+  "Webb": "4A",
+  "Duval": "4A",
+  "Jim Wells": "3W",
+  "Kleberg": "3W",
+  "Nueces": "3W"
+}

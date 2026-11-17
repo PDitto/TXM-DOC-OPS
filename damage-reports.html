@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Damage Reports — Texas</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+  :root{
+    --void:#0a0e14; --panel:#111824; --panel-2:#161f2e; --line:#243044;
+    --text:#e7eef6; --muted:#8597ad; --muted-2:#5d6e85; --amber:#ffb000;
+    --critical:#ff3b30; --high:#ff8c42; --moderate:#ffd23f; --watch:#4fc3f7; --good:#46d27f;
+    --bar:#8fb3d9;
+    --mono:'IBM Plex Mono',ui-monospace,monospace; --disp:'Oswald',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 80% -10%,rgba(255,176,0,.05),transparent 60%),
+      radial-gradient(900px 500px at 0% 110%,rgba(79,195,247,.05),transparent 60%),var(--void);
+    background-attachment:fixed;color:var(--text);font-family:var(--body);line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+    background-size:42px 42px;mask-image:radial-gradient(circle at 50% 30%,#000 40%,transparent 90%)}
+  a{color:var(--watch)}
+
+  header{position:relative;z-index:2;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(22,31,46,.9),rgba(10,14,20,.6))}
+  .bar{max-width:1480px;margin:0 auto;padding:18px 26px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .home{font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:3px;padding:6px 9px;letter-spacing:.08em}
+  .home:hover{color:var(--amber);border-color:rgba(255,176,0,.5)}
+  .title{font-family:var(--disp);font-weight:700;font-size:25px;letter-spacing:.14em;text-transform:uppercase;line-height:1;white-space:nowrap}
+  .title small{color:var(--amber);font-weight:500}
+  .sub{font-family:var(--mono);font-size:11px;color:var(--muted-2);letter-spacing:.14em;text-transform:uppercase;margin-top:6px}
+  .clock{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--muted);text-align:right;letter-spacing:.04em;line-height:1.75}
+  .clock b{color:var(--amber);font-weight:600}
+  .stale{color:var(--critical)!important}
+
+  .kpis{position:relative;z-index:2;border-bottom:1px solid var(--line);background:rgba(10,14,20,.55)}
+  .kpis .row{max-width:1480px;margin:0 auto;padding:14px 26px;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+  .kpi{border-left:2px solid var(--line);padding:2px 0 2px 12px}
+  .kpi b{display:block;font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.1}
+  .kpi span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+  .kpi.crit{border-color:var(--critical)} .kpi.hi{border-color:var(--high)}
+
+  .filters{position:relative;z-index:2;max-width:1480px;margin:0 auto;padding:18px 26px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input,.filters select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;
+    padding:8px 11px;font-family:var(--body);font-size:13.5px;min-height:38px}
+  .filters input{flex:1;min-width:180px;max-width:320px}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 13px;cursor:pointer;min-height:36px}
+  .chip[aria-pressed="true"]{color:var(--void);background:var(--amber);border-color:var(--amber)}
+  .chip:focus-visible,.filters input:focus-visible,.filters select:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
+
+  main{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:18px 26px 50px;display:grid;gap:20px;grid-template-columns:minmax(0,1fr) 430px;align-items:start}
+  @media(max-width:1020px){main{grid-template-columns:1fr}.side{display:contents}.panel.where{order:-1}.panel.scoring{order:2}#map{height:300px!important}}
+  @media(max-width:600px){.title{font-size:20px;white-space:normal;letter-spacing:.1em}.clock{margin-left:0;text-align:left}.sep{display:none}.bar,.filters,main,.kpis .row{padding-left:16px;padding-right:16px}main .rc{grid-template-columns:44px minmax(0,1fr)}main .rank{font-size:20px}main .rb{padding:13px 14px}}
+  .count{font-family:var(--mono);font-size:11px;color:var(--muted-2);letter-spacing:.1em;text-transform:uppercase;margin:0 0 10px}
+
+  .rc{position:relative;display:grid;grid-template-columns:62px minmax(0,1fr);background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:8px;margin-bottom:14px;overflow:hidden;scroll-margin-top:16px;transition:border-color .2s,box-shadow .2s}
+  .rc.flash{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+  .rc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--t)}
+  .rc[data-tier="critical"]{--t:var(--critical)} .rc[data-tier="high"]{--t:var(--high)}
+  .rc[data-tier="moderate"]{--t:var(--moderate)} .rc[data-tier="watch"]{--t:var(--watch)}
+  .rank{font-family:var(--disp);font-weight:600;font-size:26px;color:var(--muted-2);text-align:center;padding-top:16px;border-right:1px solid var(--line)}
+  .rc.top .rank{color:var(--t)}
+  .rb{padding:15px 18px 14px;min-width:0}
+  .toprow{display:flex;gap:14px;align-items:flex-start}
+  .ttl{font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:.03em;line-height:1.2;flex:1;min-width:0}
+  .flag{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--t);border:1px solid var(--t);border-radius:3px;padding:1px 6px;margin-bottom:5px}
+  .pri{flex:none;text-align:right;line-height:1}
+  .pri b{font-family:var(--mono);font-size:30px;font-weight:600}
+  .pri .tier{display:flex;align-items:center;gap:5px;justify-content:flex-end;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text);margin-top:5px}
+  .pri .tier i{width:9px;height:9px;border-radius:2px;background:var(--t)}
+  .meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 12px}
+  .meta .new{color:var(--void);background:var(--amber);border-radius:3px;padding:0 6px;font-weight:600}
+  .meta .up{color:var(--text)} .meta .dn{color:var(--muted)}
+  .meta .old{color:var(--muted-2);font-style:italic}
+
+  .bars{display:grid;grid-template-columns:auto 1fr 30px;gap:6px 10px;align-items:center;margin:13px 0 4px;max-width:520px}
+  .bars span{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .bars em{font-style:normal;font-family:var(--mono);font-size:12px;text-align:right;color:var(--text)}
+  .track{height:8px;border-radius:4px;background:rgba(143,179,217,.12);overflow:hidden}
+  .fill{height:100%;border-radius:4px;background:var(--bar)}
+
+  .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .fact{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:3px 8px;color:var(--text);background:rgba(10,14,20,.35)}
+  .fact b{font-weight:600}
+  .fact.hot{border-color:rgba(255,59,48,.45)}
+  .sum{font-size:14px;color:#cfd9e5;margin:11px 0 0}
+  .angle{font-size:13px;color:var(--muted);margin-top:7px}
+  .angle b{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-right:6px}
+  .src{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-top:9px;display:flex;flex-wrap:wrap;gap:4px 12px}
+  .src a{text-decoration:none} .src a:hover{text-decoration:underline}
+  .locate{background:none;border:none;color:var(--watch);font-family:var(--mono);font-size:11px;cursor:pointer;padding:0;text-decoration:underline}
+
+  .empty{border:1px dashed var(--line);border-radius:8px;padding:34px;text-align:center;color:var(--muted);font-size:14px}
+
+  .side{position:sticky;top:14px}
+  .panel{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px}
+  .ph{font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:14px;padding:11px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .ph small{font-family:var(--mono);font-size:10px;color:var(--muted-2);letter-spacing:.08em;font-weight:400}
+  #map{height:430px;background:#0d131c}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 14px;font-family:var(--mono);font-size:10.5px;color:var(--muted);border-top:1px solid var(--line)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  .how{padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .how dt{font-family:var(--mono);font-size:11px;color:var(--text);letter-spacing:.06em;margin-top:8px}
+  .how dt:first-child{margin-top:0}
+  .how dd{margin:2px 0 0}
+  .how .tiers{font-family:var(--mono);font-size:11px;margin-top:10px;color:var(--text)}
+  .leaflet-container{font-family:var(--body)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
+  .leaflet-popup-content{margin:10px 12px;font-size:12.5px;line-height:1.45}
+  .leaflet-popup-content b{font-family:var(--disp);font-weight:600;letter-spacing:.03em;font-size:14px}
+  .leaflet-control-attribution{background:rgba(10,14,20,.7)!important;color:var(--muted-2)!important}
+  .leaflet-control-attribution a{color:var(--muted)!important}
+  footer{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:0 26px 40px;font-family:var(--mono);font-size:11px;color:var(--muted-2)}
+  @media(prefers-reduced-motion:reduce){.rc{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <a class="home" href="index.html">&larr; HUB</a>
+      <div>
+        <div class="title">Damage Reports <small>Texas</small></div>
+        <div class="sub">Statewide disaster damage · ranked by priority</div>
+      </div>
+    </div>
+    <div class="clock">
+      <div>Last pull <b id="pulled">—</b></div>
+      <div id="next">Updates 07:00 &amp; 19:00 CT</div>
+    </div>
+  </div>
+</header>
+
+<section class="kpis" aria-label="Totals for reports shown">
+  <div class="row" id="kpis"></div>
+</section>
+
+<div class="filters" role="search">
+  <input id="q" type="search" placeholder="Search place, county, title…" aria-label="Search reports">
+  <select id="region" aria-label="TXM region"><option value="">All TXM regions</option></select>
+  <span class="sep"></span>
+  <div id="hazards" style="display:flex;gap:6px;flex-wrap:wrap" role="group" aria-label="Hazard"></div>
+  <span class="sep"></span>
+  <div id="statuses" style="display:flex;gap:6px;flex-wrap:wrap" role="group" aria-label="Status"></div>
+</div>
+
+<main>
+  <section aria-label="Ranked damage reports">
+    <p class="count" id="count"></p>
+    <div id="list"></div>
+  </section>
+  <aside class="side">
+    <div class="panel where">
+      <div class="ph">Where <small>tap a dot to jump to its report</small></div>
+      <div id="map" role="img" aria-label="Map of Texas with a dot for each report, sized and colored by priority"></div>
+      <div class="legend">
+        <span><i style="background:var(--critical)"></i>Critical 60+</span>
+        <span><i style="background:var(--high)"></i>High 40–59</span>
+        <span><i style="background:var(--moderate)"></i>Moderate 20–39</span>
+        <span><i style="background:var(--watch)"></i>Watch &lt;20</span>
+      </div>
+    </div>
+    <div class="panel scoring">
+      <div class="ph">How priority is scored</div>
+      <dl class="how">
+        <dt>DAMAGE · 45%</dt>
+        <dd>Homes destroyed, major, minor and affected (weighted 10/5/2/1), or the official dollar estimate, plus the highest declaration: local, state, SBA or federal.</dd>
+        <dt>IMPACT ON LIVING · 35%</dt>
+        <dd>Deaths, injuries and rescues; people displaced; power outages and boil-water notices; road closures and open shelters.</dd>
+        <dt>MEDIA COVERAGE · 20%</dt>
+        <dd>How many separate outlets are covering it, with a boost for national coverage.</dd>
+        <dd class="tiers">Each part runs 0–100. Priority = weighted total.</dd>
+        <dd>Reports stay on the board until 30 days pass with no new information.</dd>
+      </dl>
+    </div>
+  </aside>
+</main>
+
+<footer>Pulled from news, NWS, TDEM, county and FEMA sources. Numbers are as reported at pull time; blank means not yet reported.</footer>
+
+<script>
+// <<DATA
+const DATA = {"captured":"2026-11-17T13:00:35Z","reports":[{"id":"hillcountry-flood-2026-07","title":"July Hill Country & South Texas floods — long-term recovery","hazard":"flood","status":"recovery","event_date":"2026-07-12","updated":"2026-11-02","place":"Kerrville / Uvalde","counties":["Kerr","Uvalde","Kendall","Comal","Bandera","Gillespie","Medina","Zavala","Frio","Bexar"],"lat":30.047,"lon":-99.14,"homes":{"destroyed":132,"major":618,"affected":2194},"declaration":"federal","deaths":3,"rescues":530,"media":71,"summary":"The state counts 2,944 homes and small businesses damaged, including 132 destroyed and 618 with major damage. After an appeal, FEMA Individual Assistance opened Oct 30 for 20 counties; many Kerr County families are rebuilding for the second year in a row.","txm_angle":"Rebuild and repair; help survivors in the 20 approved counties register for FEMA Individual Assistance.","sources":[{"title":"Texas Tribune (Oct 28)","url":"https://www.texastribune.org/2026/10/28/trump-fema-flood-aid-hill-country-texas/"},{"title":"FOX 26 (Oct 30)","url":"https://www.fox26houston.com/news/texas-wins-fema-appeal-financial-assistance-coming-texans-hit-hill-country-flooding"},{"title":"Texas Public Radio (Nov 2)","url":"https://www.tpr.org/news/2026-11-02/additional-federal-disaster-assistance-available-in-texas-following-the-summers-severe-weather-and-flooding"}],"carried":false,"damage":99,"living":35,"priority":71,"tier":"critical","is_new":true,"change":0,"regions":["4A","5W"]},{"id":"elpaso-flood-2026-10","title":"El Paso County flooding — Horizon City area","hazard":"flood","status":"recovery","event_date":"2026-10-25","updated":"2026-11-14","place":"Horizon City (Lakeway, Mountain Shadow)","counties":["El Paso"],"lat":31.693,"lon":-106.207,"homes":{"affected":190},"declaration":"state","roads_closed":true,"media":30,"summary":"Runoff from the Hueco Mountains flooded more than 190 homes near Horizon City, with power outages and road closures; a separate flood forced 16 households out in west El Paso. State disaster declaration in place; the Governor asked SBA for a disaster declaration on Nov 11.","txm_angle":"Mud-out and debris crews. The county is asking volunteers for needs-assessment calls, door-to-door outreach and moving debris to dumpsters.","sources":[{"title":"El Paso Times via Yahoo","url":"https://www.yahoo.com/news/weather-news/articles/volunteers-donations-needed-victims-flooding-193056019.html"},{"title":"TDEM (Nov 11)","url":"https://www.tdem.texas.gov/press-release/11-11-26"},{"title":"KFOX14","url":"https://kfoxtv.com/news/local/el-paso-county-flooding-agencies-review-aftermath-urge-people-to-report-damages"},{"title":"CW39","url":"https://cw39.com/news/abbott-requests-el-paso-disaster-assistance/"}],"carried":false,"damage":58,"living":5,"priority":34,"tier":"moderate","is_new":true,"change":0,"regions":["6B"]},{"id":"southtx-flash-flood-2026-11","title":"South Texas flash flooding — Coastal Bend & Uvalde area","hazard":"flood","status":"monitoring","event_date":"2026-11-07","updated":"2026-11-10","place":"Alice / Kingsville / west of Uvalde","counties":["Jim Wells","Kleberg","Duval","Webb","Uvalde"],"lat":27.752,"lon":-98.07,"rescues":7,"roads_closed":true,"media":58,"summary":"Four to eight inches of rain fell Nov 7–9. There were 22 flash flood warnings in one night, highways closed west of Uvalde, and water rescues, including six people on CR 433 in Jim Wells County. No counts of damaged homes have been reported yet.","txm_angle":"Watch for flooded-home reports in Jim Wells, Kleberg and Uvalde counties; mud-out if counts come in.","sources":[{"title":"6 rescued as floodwaters swallow South Texas roads","url":"https://www.yahoo.com/news/weather-news/articles/6-people-rescued-floodwaters-swallow-013056188.html"},{"title":"ABC News (Nov 8)","url":"https://abcnews.com/US/south-texas-bracing-flash-flooding-governor-bolsters-emergency/story?id=137952523"},{"title":"EM Morning Brief (Nov 9)","url":"https://emnetwork.substack.com/p/overnight-flood-rescues-storm-force"}],"carried":false,"damage":0,"living":12,"priority":16,"tier":"watch","is_new":true,"change":0,"regions":["3W","4A"]}]};
+// DATA>>
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  const REGIONS=[["1W","North Texas West"],["1E","North Texas East"],["2N","East Texas Northeast"],["2E","East Texas Southeast"],
+    ["3E","Coastal Plains East"],["3W","Coastal Plains West"],["4A","South Texas"],["4B","Southern Plains"],["5E","Central Texas East"],
+    ["5W","Central Texas West"],["6A","West Texas"],["6B","El Paso/Big Bend"],["7N","Top of Texas North"],["7S","Top of Texas South"]];
+  const HAZ={flood:"Flood",tornado:"Tornado",wind:"Wind",hail:"Hail",wildfire:"Wildfire",winter:"Winter storm",tropical:"Tropical",other:"Other"};
+  const STAT={response:"Response",recovery:"Recovery",monitoring:"Monitoring"};
+  const TIER={critical:"Critical",high:"High",moderate:"Moderate",watch:"Watch"};
+  const TCOL={critical:"#ff3b30",high:"#ff8c42",moderate:"#ffd23f",watch:"#4fc3f7"};
+  const DECL={local:"Local declaration",state:"State declaration",sba:"SBA declaration",federal:"Federal declaration"};
+  const R=DATA.reports||[];
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const n=v=>(v==null||v==="")?null:Number(v);
+  const fmt=v=>Number(v).toLocaleString("en-US");
+  const day=s=>{const d=new Date(s+"T12:00:00");return d.toLocaleDateString("en-US",{month:"short",day:"numeric"})};
+  const homesTotal=r=>{const h=r.homes||{};return ["destroyed","major","minor","affected"].reduce((a,k)=>a+(n(h[k])||0),0)};
+
+  // ---- clock / next pull ----
+  function ctParts(d){const p={};new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(d).forEach(x=>p[x.type]=x.value);return p}
+  function tick(){
+    const now=new Date();
+    if(DATA.captured){
+      const c=new Date(DATA.captured);
+      $("pulled").textContent=c.toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})+" CT";
+      const hrs=(now-c)/36e5;
+      $("pulled").classList.toggle("stale",hrs>14);
+    }
+    const p=ctParts(now); const h=+p.hour%24, m=+p.minute;
+    const mins=h*60+m; const targets=[7*60,19*60,31*60];
+    const t=targets.find(x=>x>mins); const left=t-mins;
+    $("next").innerHTML='Next pull <b>'+(t%(24*60)===7*60?"07:00":"19:00")+' CT</b> · in '+Math.floor(left/60)+'h '+String(left%60).padStart(2,"0")+'m';
+  }
+  tick(); setInterval(tick,30000);
+
+  // ---- filters ----
+  const state={q:"",region:"",haz:"",status:""};
+  const usedRegions=new Set(R.flatMap(r=>r.regions||[]));
+  REGIONS.forEach(([c,name])=>{const o=document.createElement("option");o.value=c;o.textContent=c+" · "+name+(usedRegions.has(c)?"":" (none)");$("region").appendChild(o)});
+  function chips(el,map,key,present){
+    const opts=[["","All"]].concat(Object.entries(map).filter(([k])=>present.has(k)));
+    el.innerHTML=opts.map(([k,l])=>'<button class="chip" data-v="'+k+'" aria-pressed="'+(k===state[key])+'">'+esc(l)+'</button>').join("");
+    el.onclick=e=>{const b=e.target.closest(".chip");if(!b)return;state[key]=b.dataset.v;
+      el.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
+  }
+  chips($("hazards"),HAZ,"haz",new Set(R.map(r=>r.hazard)));
+  chips($("statuses"),STAT,"status",new Set(R.map(r=>r.status)));
+  $("q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();render()};
+  $("region").onchange=e=>{state.region=e.target.value;render()};
+
+  function visible(){
+    return R.filter(r=>{
+      if(state.haz&&r.hazard!==state.haz)return false;
+      if(state.status&&r.status!==state.status)return false;
+      if(state.region&&!(r.regions||[]).includes(state.region))return false;
+      if(state.q){const hay=[r.title,r.place,(r.counties||[]).join(" "),r.summary].join(" ").toLowerCase();if(!hay.includes(state.q))return false}
+      return true});
+  }
+
+  // ---- map ----
+  let map=null, layer=null;
+  try{
+    map=L.map("map",{scrollWheelZoom:false,zoomSnap:.25}).setView([31.1,-99.6],5.5);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:18,
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+  }catch(e){$("map").innerHTML='<div class="empty" style="margin:14px">Map could not load.</div>'}
+
+  function flash(id){const el=document.getElementById("r-"+id);if(!el)return;el.scrollIntoView({behavior:"smooth",block:"start"});
+    el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}
+  window.__locate=id=>{const r=R.find(x=>x.id===id);if(map&&r){map.flyTo([r.lat,r.lon],8,{duration:.8});
+    if(window.innerWidth<=1020)$("map").scrollIntoView({behavior:"smooth"})}};
+
+  function drawMap(list){
+    if(!layer)return; layer.clearLayers();
+    [...list].reverse().forEach(r=>{
+      const rad=7+Math.round((r.priority||0)/100*15);
+      const c=L.circleMarker([r.lat,r.lon],{radius:rad,color:"#0a0e14",weight:2,fillColor:TCOL[r.tier],fillOpacity:.88})
+        .bindTooltip(esc(r.title)+" · "+r.priority,{direction:"top",offset:[0,-rad]})
+        .bindPopup('<b>'+esc(r.title)+'</b><br>'+TIER[r.tier]+' · priority '+r.priority+'<br>'+esc(r.place||"")+((r.counties||[]).length?" · "+esc(r.counties.join(", "))+" Co.":""))
+        .on("click",()=>flash(r.id));
+      layer.addLayer(c);
+    });
+  }
+
+  // ---- cards ----
+  function facts(r){
+    const f=[],h=r.homes||{};
+    const parts=[["destroyed","destroyed"],["major","major"],["minor","minor"],["affected","affected"]].filter(([k])=>n(h[k]));
+    if(parts.length)f.push('<span class="fact"><b>'+fmt(homesTotal(r))+'</b> homes · '+parts.map(([k,l])=>fmt(h[k])+" "+l).join(", ")+'</span>');
+    if(n(r.damage_usd))f.push('<span class="fact"><b>$'+(r.damage_usd>=1e6?(r.damage_usd/1e6).toFixed(r.damage_usd>=1e8?0:1)+"M":fmt(r.damage_usd))+'</b> est. damage</span>');
+    if(n(r.deaths))f.push('<span class="fact hot"><b>'+fmt(r.deaths)+'</b> dead</span>');
+    if(n(r.injuries))f.push('<span class="fact"><b>'+fmt(r.injuries)+'</b> injured</span>');
+    if(n(r.rescues))f.push('<span class="fact"><b>'+fmt(r.rescues)+'</b> rescued</span>');
+    if(n(r.displaced))f.push('<span class="fact"><b>'+fmt(r.displaced)+'</b> displaced</span>');
+    if(n(r.power_out))f.push('<span class="fact"><b>'+fmt(r.power_out)+'</b> without power</span>');
+    if(n(r.shelters))f.push('<span class="fact"><b>'+fmt(r.shelters)+'</b> shelter'+(r.shelters>1?"s":"")+' open</span>');
+    if(r.boil_water)f.push('<span class="fact">Boil-water notice</span>');
+    if(r.roads_closed)f.push('<span class="fact">Roads closed</span>');
+    if(DECL[r.declaration])f.push('<span class="fact">'+DECL[r.declaration]+'</span>');
+    return f.join("");
+  }
+  function card(r,i){
+    const regions=(r.regions||[]).length?"Region "+r.regions.join(", "):"Region —";
+    const ch=r.is_new?'<span class="new">NEW</span>':(r.change>0?'<span class="up" title="Priority change since last pull">&#9650; '+r.change+'</span>':(r.change<0?'<span class="dn" title="Priority change since last pull">&#9660; '+(-r.change)+'</span>':""));
+    const src=(r.sources||[]).map(s=>'<a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(s.title)+'</a>').join("");
+    const bar=(lbl,v)=>'<span>'+lbl+'</span><div class="track" role="img" aria-label="'+lbl+' '+v+' of 100"><div class="fill" style="width:'+v+'%"></div></div><em>'+v+'</em>';
+    return '<article class="rc'+(i===0?" top":"")+'" id="r-'+esc(r.id)+'" data-tier="'+r.tier+'">'+
+      '<div class="rank">'+String(i+1).padStart(2,"0")+'</div><div class="rb">'+
+      '<div class="toprow"><div class="ttl">'+(i===0?'<span class="flag">TOP PRIORITY</span><br>':'')+esc(r.title)+'</div>'+
+      '<div class="pri"><b>'+r.priority+'</b><div class="tier"><i></i>'+TIER[r.tier]+'</div></div></div>'+
+      '<div class="meta"><span>'+esc(HAZ[r.hazard]||r.hazard)+' · '+esc(STAT[r.status]||r.status)+'</span>'+
+        '<span>'+esc(r.place||"")+((r.counties||[]).length?", "+esc(r.counties.join(", "))+" Co.":"")+'</span>'+
+        '<span>'+regions+'</span><span>Began '+day(r.event_date)+'</span><span>Updated '+day(r.updated)+'</span>'+ch+
+        (r.carried?'<span class="old">not in latest pull</span>':'')+
+        '<button class="locate" onclick="__locate(\''+esc(r.id)+'\')">map</button></div>'+
+      '<div class="bars">'+bar("Damage",r.damage)+bar("Living",r.living)+bar("Media",r.media)+'</div>'+
+      '<div class="facts">'+facts(r)+'</div>'+
+      (r.summary?'<p class="sum">'+esc(r.summary)+'</p>':'')+
+      (r.txm_angle?'<div class="angle"><b>TXM angle</b>'+esc(r.txm_angle)+'</div>':'')+
+      (src?'<div class="src">Sources: '+src+'</div>':'')+
+      '</div></article>';
+  }
+
+  function kpis(list){
+    const sum=k=>list.reduce((a,r)=>a+(n(r[k])||0),0);
+    const counties=new Set(list.flatMap(r=>r.counties||[]));
+    const items=[
+      ["",list.length,"Reports"],
+      ["crit",list.filter(r=>r.tier==="critical").length,"Critical"],
+      ["hi",list.filter(r=>r.tier==="high").length,"High"],
+      ["",fmt(list.reduce((a,r)=>a+homesTotal(r),0)),"Homes damaged"],
+      ["",fmt(sum("displaced")),"Displaced"],
+      ["",fmt(sum("rescues")),"Rescued"],
+      ["",fmt(sum("deaths")),"Deaths"],
+      ["",counties.size,"Counties"]];
+    $("kpis").innerHTML=items.map(([c,v,l])=>'<div class="kpi '+c+'"><b>'+v+'</b><span>'+l+'</span></div>').join("");
+  }
+
+  function render(){
+    const list=visible();
+    kpis(list);
+    $("count").textContent=list.length+" of "+R.length+" reports · highest priority first";
+    $("list").innerHTML=list.length?list.map(card).join(""):
+      '<div class="empty">'+(R.length?"No reports match these filters.":"No damage reports in Texas in the last 30 days. The board checks again at the next pull.")+'</div>';
+    drawMap(list);
+  }
+  render();
+})();
+</script>
+</body>
+</html>
