@@ -129,7 +129,7 @@
       <a class="home" href="index.html">&larr; HUB</a>
       <div>
         <div class="title">Damage Reports <small>Texas</small></div>
-        <div class="sub">Statewide disaster damage · ranked by priority</div>
+        <div class="sub">Statewide disaster damage · <span id="month">this month</span> · ranked by priority</div>
       </div>
     </div>
     <div class="clock">
@@ -178,7 +178,7 @@
         <dt>MEDIA COVERAGE · 20%</dt>
         <dd>How many separate outlets are covering it, with a boost for national coverage.</dd>
         <dd class="tiers">Each part runs 0–100. Priority = weighted total.</dd>
-        <dd>Reports stay on the board until 30 days pass with no new information.</dd>
+        <dd>The board shows events that began this calendar month. It starts fresh on the 1st.</dd>
       </dl>
     </div>
   </aside>
@@ -188,7 +188,7 @@
 
 <script>
 // <<DATA
-const DATA = {"captured":"2026-11-17T13:00:35Z","reports":[{"id":"hillcountry-flood-2026-07","title":"July Hill Country & South Texas floods — long-term recovery","hazard":"flood","status":"recovery","event_date":"2026-07-12","updated":"2026-11-02","place":"Kerrville / Uvalde","counties":["Kerr","Uvalde","Kendall","Comal","Bandera","Gillespie","Medina","Zavala","Frio","Bexar"],"lat":30.047,"lon":-99.14,"homes":{"destroyed":132,"major":618,"affected":2194},"declaration":"federal","deaths":3,"rescues":530,"media":71,"summary":"The state counts 2,944 homes and small businesses damaged, including 132 destroyed and 618 with major damage. After an appeal, FEMA Individual Assistance opened Oct 30 for 20 counties; many Kerr County families are rebuilding for the second year in a row.","txm_angle":"Rebuild and repair; help survivors in the 20 approved counties register for FEMA Individual Assistance.","sources":[{"title":"Texas Tribune (Oct 28)","url":"https://www.texastribune.org/2026/10/28/trump-fema-flood-aid-hill-country-texas/"},{"title":"FOX 26 (Oct 30)","url":"https://www.fox26houston.com/news/texas-wins-fema-appeal-financial-assistance-coming-texans-hit-hill-country-flooding"},{"title":"Texas Public Radio (Nov 2)","url":"https://www.tpr.org/news/2026-11-02/additional-federal-disaster-assistance-available-in-texas-following-the-summers-severe-weather-and-flooding"}],"carried":false,"damage":99,"living":35,"priority":71,"tier":"critical","is_new":true,"change":0,"regions":["4A","5W"]},{"id":"elpaso-flood-2026-10","title":"El Paso County flooding — Horizon City area","hazard":"flood","status":"recovery","event_date":"2026-10-25","updated":"2026-11-14","place":"Horizon City (Lakeway, Mountain Shadow)","counties":["El Paso"],"lat":31.693,"lon":-106.207,"homes":{"affected":190},"declaration":"state","roads_closed":true,"media":30,"summary":"Runoff from the Hueco Mountains flooded more than 190 homes near Horizon City, with power outages and road closures; a separate flood forced 16 households out in west El Paso. State disaster declaration in place; the Governor asked SBA for a disaster declaration on Nov 11.","txm_angle":"Mud-out and debris crews. The county is asking volunteers for needs-assessment calls, door-to-door outreach and moving debris to dumpsters.","sources":[{"title":"El Paso Times via Yahoo","url":"https://www.yahoo.com/news/weather-news/articles/volunteers-donations-needed-victims-flooding-193056019.html"},{"title":"TDEM (Nov 11)","url":"https://www.tdem.texas.gov/press-release/11-11-26"},{"title":"KFOX14","url":"https://kfoxtv.com/news/local/el-paso-county-flooding-agencies-review-aftermath-urge-people-to-report-damages"},{"title":"CW39","url":"https://cw39.com/news/abbott-requests-el-paso-disaster-assistance/"}],"carried":false,"damage":58,"living":5,"priority":34,"tier":"moderate","is_new":true,"change":0,"regions":["6B"]},{"id":"southtx-flash-flood-2026-11","title":"South Texas flash flooding — Coastal Bend & Uvalde area","hazard":"flood","status":"monitoring","event_date":"2026-11-07","updated":"2026-11-10","place":"Alice / Kingsville / west of Uvalde","counties":["Jim Wells","Kleberg","Duval","Webb","Uvalde"],"lat":27.752,"lon":-98.07,"rescues":7,"roads_closed":true,"media":58,"summary":"Four to eight inches of rain fell Nov 7–9. There were 22 flash flood warnings in one night, highways closed west of Uvalde, and water rescues, including six people on CR 433 in Jim Wells County. No counts of damaged homes have been reported yet.","txm_angle":"Watch for flooded-home reports in Jim Wells, Kleberg and Uvalde counties; mud-out if counts come in.","sources":[{"title":"6 rescued as floodwaters swallow South Texas roads","url":"https://www.yahoo.com/news/weather-news/articles/6-people-rescued-floodwaters-swallow-013056188.html"},{"title":"ABC News (Nov 8)","url":"https://abcnews.com/US/south-texas-bracing-flash-flooding-governor-bolsters-emergency/story?id=137952523"},{"title":"EM Morning Brief (Nov 9)","url":"https://emnetwork.substack.com/p/overnight-flood-rescues-storm-force"}],"carried":false,"damage":0,"living":12,"priority":16,"tier":"watch","is_new":true,"change":0,"regions":["3W","4A"]}]};
+const DATA = {"captured":"2026-11-17T13:00:35Z","month":"November 2026","reports":[{"id":"southtx-flash-flood-2026-11","title":"South Texas flash flooding — Coastal Bend & Uvalde area","hazard":"flood","status":"monitoring","event_date":"2026-11-07","updated":"2026-11-10","place":"Alice / Kingsville / west of Uvalde","counties":["Jim Wells","Kleberg","Duval","Webb","Uvalde"],"lat":27.752,"lon":-98.07,"rescues":7,"roads_closed":true,"media":58,"summary":"Four to eight inches of rain fell Nov 7–9. There were 22 flash flood warnings in one night, highways closed west of Uvalde, and water rescues, including six people on CR 433 in Jim Wells County. No counts of damaged homes have been reported yet.","txm_angle":"Watch for flooded-home reports in Jim Wells, Kleberg and Uvalde counties; mud-out if counts come in.","sources":[{"title":"6 rescued as floodwaters swallow South Texas roads","url":"https://www.yahoo.com/news/weather-news/articles/6-people-rescued-floodwaters-swallow-013056188.html"},{"title":"ABC News (Nov 8)","url":"https://abcnews.com/US/south-texas-bracing-flash-flooding-governor-bolsters-emergency/story?id=137952523"},{"title":"EM Morning Brief (Nov 9)","url":"https://emnetwork.substack.com/p/overnight-flood-rescues-storm-force"}],"carried":false,"damage":0,"living":12,"priority":16,"tier":"watch","is_new":false,"change":0,"regions":["3W","4A"]}]};
 // DATA>>
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -344,9 +344,10 @@ const DATA = {"captured":"2026-11-17T13:00:35Z","reports":[{"id":"hillcountry-fl
     kpis(list);
     $("count").textContent=list.length+" of "+R.length+" reports · highest priority first";
     $("list").innerHTML=list.length?list.map(card).join(""):
-      '<div class="empty">'+(R.length?"No reports match these filters.":"No damage reports in Texas in the last 30 days. The board checks again at the next pull.")+'</div>';
+      '<div class="empty">'+(R.length?"No reports match these filters.":"No damage reports in Texas for "+(DATA.month||"this month")+" yet. The board checks again at the next pull.")+'</div>';
     drawMap(list);
   }
+  if(DATA.month)$("month").textContent=DATA.month;
   render();
 })();
 </script>

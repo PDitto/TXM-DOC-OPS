@@ -26,7 +26,9 @@ Notes
 - The dispatch board on this site has no shared database, so assignments made
   here stay in that browser. Only the unit list and statuses are refreshed.
 - `build_damage_reports.py` scores each report (damage 45%, impact on living
-  35%, media coverage 20%) and ranks the board. A report the latest search did
-  not find stays on until 30 days pass with no update. County-to-region codes
+  35%, media coverage 20%) and ranks the board. The board covers the current
+  calendar month only (events that began this month, Central Time) and starts
+  fresh on the 1st. A report the latest search did not find stays on for the
+  rest of the month. County-to-region codes
   come from `damage-county-regions.json`; the starter entries are best guesses
   and need confirming. The script prints a NOTE for any county not in it.

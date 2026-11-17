@@ -8,8 +8,10 @@ usage: python3 tools/build_damage_reports.py <reports.json> damage-reports.html
    "reports": [ { ...one object per disaster event, fields below... } ]}
 
 Only the block between the "// <<DATA" and "// DATA>>" lines of the page is
-changed. Reports already on the board that this run did not find are kept
-until 30 days pass with no update, so a thin search never empties the board.
+changed. The board covers one calendar month (Central Time): only events whose
+event_date falls in the month of `captured` are kept, so on the 1st the board
+starts fresh. Reports already on the board that this run did not find are kept
+for the rest of the month, so a thin search never empties the board.
 
 Report fields (unknown numbers: leave out or null, never guess):
   id            short stable slug, same every run for the same event, e.g. "elpaso-flood-2026-10"
@@ -38,7 +40,7 @@ BLOCK = re.compile(r'(// <<DATA\n)(.*?)(\n// DATA>>)', re.S)
 HAZARDS = {"flood", "tornado", "wind", "hail", "wildfire", "winter", "tropical", "other"}
 STATUS = {"response", "recovery", "monitoring"}
 DECL = {"none": 0, "local": 3, "state": 8, "sba": 11, "federal": 15}
-KEEP_DAYS = 30
+CENTRAL = timedelta(hours=-6)  # month boundary in Central Standard Time
 
 
 def num(v):
@@ -114,7 +116,8 @@ def main():
     regions = json.load(open("tools/damage-county-regions.json", encoding="utf-8"))
     regions = {k.lower(): v for k, v in regions.items() if not k.startswith("_")}
     prev = {r["id"]: r for r in old.get("reports", [])}
-    cutoff = (captured - timedelta(days=KEEP_DAYS)).date()
+    local = captured + CENTRAL
+    month = (local.year, local.month)
 
     out, seen, problems = [], set(), []
     for r in found.get("reports", []):
@@ -135,8 +138,9 @@ def main():
 
     kept = []
     for r in out:
-        if datetime.strptime(r["updated"], "%Y-%m-%d").date() < cutoff:
-            print(f"dropped (no update in {KEEP_DAYS} days): {r['title']}")
+        ev = datetime.strptime(r["event_date"], "%Y-%m-%d")
+        if (ev.year, ev.month) != month:
+            print(f"left off (began {r['event_date']}, outside {local:%B %Y}): {r['title']}")
             continue
         p = prev.get(r["id"])
         sc = score(r)
@@ -151,7 +155,7 @@ def main():
         kept.append(r)
     kept.sort(key=lambda r: (-r["priority"], r["title"]))
 
-    data = {"captured": found["captured"], "reports": kept}
+    data = {"captured": found["captured"], "month": f"{local:%B %Y}", "reports": kept}
     new_block = "const DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
     page2 = page[:m.start(2)] + new_block + page[m.end(2):]
     open(page_path, "w", encoding="utf-8").write(page2)
